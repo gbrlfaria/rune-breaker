@@ -1,0 +1,143 @@
+----------------------------------------------------------------------
+IMAGE PREPROCESSING
+----------------------------------------------------------------------
+preprocessing_accuracy = 0.9802
+
+$ python preprocessing/preprocess.py -m binarized
+
+...
+
+Approved 642 out of 655 images (98%).
+
+Samples summary
+        down  left  right    up  total
+hollow  1640  1640   1640  1640   6560
+full    1976  1976   1976  1976   7904
+thin    1520  1520   1520  1520   6080
+total   5136  5136   5136  5136  20544
+
+Finished!
+----------------------------------------------------------------------
+DATASET SPLITTING
+----------------------------------------------------------------------
+split = 0.90, 0.05, 0.05
+real_split = 0.80, 0.10, 0.10 
+
+$ python model/make_dataset.py -r 0.9
+
+...
+
+Training set
+        down  left  right    up  total
+hollow  1368  1368   1368  1368   5472
+full    1368  1368   1368  1368   5472
+thin    1368  1368   1368  1368   5472
+total   4104  4104   4104  4104  16416
+
+Validation set
+        down  left  right   up  total
+hollow   136   136    136  136    544
+full     304   304    304  304   1216
+thin      76    76     76   76    304
+total    516   516    516  516   2064
+
+Testing set
+        down  left  right   up  total
+hollow   136   136    136  136    544
+full     304   304    304  304   1216
+thin      76    76     76   76    304
+total    516   516    516  516   2064
+
+Finished!
+----------------------------------------------------------------------
+MODEL TRAINING
+----------------------------------------------------------------------
+$ python model/train.py -m binarized_model128.h5 -b 128
+
+...
+
+Settings
+           value
+max_epochs   150
+patience      75
+batch_size   128
+
+Creating model...
+
+Creating generators...
+Found 16416 images belonging to 4 classes.
+Found 2064 images belonging to 4 classes.
+
+Fitting model...
+
+...
+
+Epoch 131/150
+ - 23s - loss: 0.0093 - accuracy: 0.9973 - val_loss: 5.5879e-09 - val_accuracy: 0.9974
+
+...
+
+Best epoch: 131
+
+Saving model...
+Model saved to ./model/binarized_model128.h5
+
+Finished!
+----------------------------------------------------------------------
+VALIDATION PERFORMANCE
+----------------------------------------------------------------------
+$ python model/classify.py -m binarized_model128.h5 -d validation
+Processing 2064 file(s) in validation/...
+
+Confusion matrix
+       down  left  right   up
+down    516     0      0    0
+left      0   515      0    1
+right     1     0    515    0
+up        0     1      0  515
+
+Classification summary
+       precision  recall      f1
+down      0.9981  1.0000  0.9990
+left      0.9981  0.9981  0.9981
+right     1.0000  0.9981  0.9990
+up        0.9981  0.9981  0.9981
+
+Accuracy by type
+        correct  incorrect  accuracy
+hollow      543          1    0.9982
+full       1214          2    0.9984
+thin        304          0    1.0000
+total      2061          3    0.9985
+
+Finished!
+----------------------------------------------------------------------
+FINAL PERFORMANCE
+----------------------------------------------------------------------
+$ python model/classify.py -m binarized_model128.h5 -d testing
+Processing 2064 file(s) in testing/...
+
+Confusion matrix
+       down  left  right   up
+down    516     0      0    0
+left      0   516      0    0
+right     1     0    515    0
+up        0     0      0  516
+
+Classification summary
+       precision  recall     f1
+down      0.9981  1.0000  0.999
+left      1.0000  1.0000  1.000
+right     1.0000  0.9981  0.999
+up        1.0000  1.0000  1.000
+
+Accuracy by type
+        correct  incorrect  accuracy
+hollow      544          0    1.0000
+full       1215          1    0.9992
+thin        304          0    1.0000
+total      2063          1    0.9995
+
+Finished!
+----------------------------------------------------------
+P(Binarized) = 0.9802 * (0.9995)^4 = 0.9782
