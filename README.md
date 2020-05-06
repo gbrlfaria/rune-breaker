@@ -473,7 +473,7 @@ There is always room for improvement. Despite the remarkable results obtained by
 About half of the screenshot discards during the preprocessing stage were caused by the corruption of arrow outlines. Also, many errors made by the classifier happened due to the same reason. This phenomenon is related to the denoising transformation, which may sometimes remove pixels from the arrows. Using different denoising parameters could increase both the preprocessing and classification accuracy. However, be aware that changes in these parameters could cause the algorithm to fail in cases it currently works. Thus, any tweaks should be appropriately measured.
 
 #### Applying machine learning
-As mentioned at the beginning of this article, it is also possible to predict the location of the arrows using a neural network. This neural network would have the transformed search region as input and would replace the ["locating the arrow"](./#locating-the-arrow) step.
+As mentioned at the beginning of this article, it is also possible to predict the location of the arrows using a neural network. This neural network would have the transformed search region as input and would replace the ["locating the arrow"](#locating-the-arrow) step.
 
 Since this task allows for a considerable margin of error, this model could probably identify 100% of the arrows. Nevertheless, the performance gain would be small, since the current preprocessing accuracy is around 98%. Additionally, it is considerably more difficult to label samples and perform data augmentation compared to the arrow classification model.
 
