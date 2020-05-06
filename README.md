@@ -513,7 +513,7 @@ While it is true that we had to develop a new model from scratch, one would expe
 Therefore, we are left with two issues. First, the current CAPTCHA system hurts user interaction without providing significant security benefits. Second, it seems to be ineffective toward some of the botting software out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, the solution is also simple: surround the arrows with multiple shapes instead of circles only (although it could still be circumvented using [machine learning](applying-machine-learning)).
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, the solution is also simple: surround the arrows with multiple shapes instead of circles only (although it could still be circumvented using [machine learning](#applying-machine-learning)).
 
 The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. Despite that, there are still some opportunities that can be explored. Let's see some of them.
 
