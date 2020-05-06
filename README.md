@@ -15,7 +15,7 @@ The project provides an end-to-end pipeline that encompasses every step necessar
     - [Dataset](#dataset)
     - [Classification model](#classification-model)
 3. [Results and Interpretations](#results-and-interpretations)
-    - [Final results](#final-results)
+    - [Performance](#performance)
     - [Further improvements](#further-improvements)
 4. [Final Considerations](#final-considerations)
 
