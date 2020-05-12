@@ -316,7 +316,7 @@ if __name__ == "__main__":
                         choices=['binarized', 'gray'],
                         help="Sets the output mode to binarized or grayscale")
     parser.add_argument('-a', '--automatic', action='store_true',
-                        help="Toggles the automatic mode, which approves all the screenshots")
+                        help="Toggles the automatic mode, which approves all screenshots")
 
     args = parser.parse_args()
 
