@@ -97,7 +97,9 @@ def process_arrow(img, mode):
 
     # color transform
     img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    coefficients = (0.0445, 0.6568, 0.2987) # (h, s, v)
+    img = cv2.transform(img, np.array(coefficients).reshape((1, 3)))
 
     if mode == 'gray':
         output = img.copy()
