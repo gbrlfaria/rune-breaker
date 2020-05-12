@@ -38,7 +38,7 @@ def main(inspection, mode, automatic):
         display = cv2.imread(path)
         height, width, _ = display.shape
 
-        # Manually tuned values
+        # manually tuned values
         search_x, search_y = width // 5 + 35, height // 4
         search_width, search_height = SEARCH_REGION_WIDTH, height // 2 - search_y
 
@@ -92,29 +92,29 @@ def main(inspection, mode, automatic):
 
 
 def process_arrow(img, mode):
-    # Gaussian blurring
+    # gaussian blur
     img = cv2.GaussianBlur(img, (3, 3), 0)
 
-    # Color transform
+    # color transform
     img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     if mode == 'gray':
         output = img.copy()
 
-    # Binarization
+    # binarization
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
     if mode == 'binarized':
         output = img.copy()
 
-    # Noise removal
+    # noise removal
     denoise(img)
 
-    # Processing
+    # processing
     cx, cy = compute_arrow_centroid(img)
 
-    # Result cropping
+    # result cropping
     max_height, max_width = img.shape
 
     x0 = max(int(cx - OUTPUT_WIDTH / 2), 0)
@@ -155,7 +155,7 @@ def compute_arrow_centroid(img):
     contours, _ = cv2.findContours(
         img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Filter by area and number of vertices (score = 2)
+    # filter contours by area and number of vertices
     candidates = []
 
     for x, contour in enumerate(contours):
@@ -166,7 +166,7 @@ def compute_arrow_centroid(img):
 
     candidates.sort(key=lambda c: c[1])
 
-    # Filter by shape, with dynamic thresholding
+    # filter contours by shape, with dynamic thresholding
     centroids = []
 
     t = 0.025
