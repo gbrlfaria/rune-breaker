@@ -92,11 +92,6 @@ def main(inspection, mode, automatic):
 
 
 def process_arrow(img, mode):
-    if mode == 'hue':
-        source, _, _ = cv2.split(cv2.cvtColor(img, cv2.COLOR_BGR2HSV))
-
-    output = []
-
     # Gaussian blurring
     img = cv2.GaussianBlur(img, (3, 3), 0)
 
@@ -104,14 +99,17 @@ def process_arrow(img, mode):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+    if mode == 'gray':
+        output = img.copy()
+
     # Binarization
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
 
+    if mode == 'binarized':
+        output = img.copy()
+
     # Noise removal
     denoise(img)
-
-    if mode == 'binarized':
-        source = img.copy()
 
     # Processing
     cx, cy = compute_arrow_centroid(img)
@@ -132,7 +130,7 @@ def process_arrow(img, mode):
         y0 -= y1 - max_height
         y1 = max_height
 
-    box = source[y0:y1, x0:x1]
+    box = output[y0:y1, x0:x1]
 
     return (cx, cy), box
 
@@ -315,8 +313,8 @@ if __name__ == "__main__":
     parser.add_argument('-i', '--inspection', action='store_true',
                         help="Toggles the inspection mode, which disables the output")
     parser.add_argument('-m', '--mode', default='binarized', type=str,
-                        choices=['binarized', 'hue'],
-                        help="Sets the output mode")
+                        choices=['binarized', 'gray'],
+                        help="Sets the output mode to binarized or grayscale")
     parser.add_argument('-a', '--automatic', action='store_true',
                         help="Toggles the automatic mode, which approves all the screenshots")
 
