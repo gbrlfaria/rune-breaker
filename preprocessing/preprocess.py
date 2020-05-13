@@ -33,6 +33,8 @@ def main(inspection, mode, automatic):
 
     approved = 0
     for path, filename in labeled_imgs:
+        print("Processing " + cf.skyBlue(path))
+
         arrows = []
 
         display = cv2.imread(path)
@@ -78,7 +80,7 @@ def main(inspection, mode, automatic):
         elif key == EXIT_KEY:
             break
         else:
-            print("Skipped " + cf.skyBlue(path))
+            print("Skipped!")
 
     if len(labeled_imgs) > 0:
         print("\nApproved {} out of {} images ({}%).\n".format(
@@ -163,23 +165,23 @@ def compute_arrow_centroid(img):
     for x, contour in enumerate(contours):
         score, (cx, cy), area = calculate_arrow_scores(contour)
 
-        if score < 1 and area > 900 and area < 3600:
+        if score < 1 and area > 600 and area < 3600:
             candidates.append(((cx, cy), score))
 
     candidates.sort(key=lambda c: c[1])
 
-    # filter contours by shape, with dynamic thresholding
+    # filter contours by shape with dynamic thresholding
     centroids = []
 
-    t = 0.025
-    while len(centroids) == 0 and t < 0.3:
+    t = 0.02
+    while len(centroids) == 0 and t <= 0.2:
         for candidate in candidates:
             centroid, score = candidate
 
             if score < t:
                 centroids.append(centroid)
 
-        t *= 1.5
+        t += 0.02
 
     if not centroids:
         print("Arrow centroid not found! Returning the center point...")
