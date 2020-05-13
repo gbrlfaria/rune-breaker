@@ -165,7 +165,7 @@ def compute_arrow_centroid(img):
     for contour in contours:
         score, (cx, cy), area = circle_features(contour)
 
-        if area > 600 and area < 3600:
+        if area > 784 and area < 3600:
             candidates.append(((cx, cy), score))
 
     if candidates:
