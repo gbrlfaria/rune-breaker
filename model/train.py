@@ -19,7 +19,7 @@ import common
 
 BATCH_SIZE = 128
 MAX_EPOCHS = 150
-PATIENCE = MAX_EPOCHS // 2
+PATIENCE = MAX_EPOCHS // 3
 
 LOG_DIR = './logs/'
 
