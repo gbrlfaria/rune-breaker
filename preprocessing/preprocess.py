@@ -169,7 +169,7 @@ def compute_arrow_centroid(img):
             candidates.append(((cx, cy), score))
 
     if candidates:
-        match = min(candidates, key=lambda x: x[1])
+        match = max(candidates, key=lambda x: x[1])
         (cx, cy), score = match
 
         if score > 0.8:
@@ -195,10 +195,10 @@ def circle_features(contour):
     (cx, cy), r = cv2.minEnclosingCircle(hull)
     circle_area = np.pi * r ** 2
 
-    s1 = 1 - abs(ellipse_area - hull_area) / max(ellipse_area, hull_area)
-    s2 = 1 - abs(ellipse_area - circle_area) / max(ellipse_area, circle_area)
+    s1 = abs(ellipse_area - hull_area) / max(ellipse_area, hull_area)
+    s2 = abs(ellipse_area - circle_area) / max(ellipse_area, circle_area)
 
-    score = np.mean([s1, s2])
+    score = 1 - np.mean([s1, s2])
 
     return score, (ex, ey), ellipse_area
 
