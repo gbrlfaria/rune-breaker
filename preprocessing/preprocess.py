@@ -105,7 +105,7 @@ def process_arrow(img, mode):
         output = img.copy()
 
     # binarization
-    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2)
+    img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, -1)
 
     if mode == 'binarized':
         output = img.copy()
