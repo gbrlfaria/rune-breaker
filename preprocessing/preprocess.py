@@ -159,33 +159,33 @@ def compute_arrow_centroid(img):
     contours, _ = cv2.findContours(
         img, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
-    # filter contours by area and number of vertices
+    # filter contours by area
     candidates = []
 
-    for x, contour in enumerate(contours):
-        score, (cx, cy), area = calculate_arrow_scores(contour)
+    for contour in contours:
+        score, (cx, cy), area = circle_features(contour)
 
-        if score < 1 and area > 600 and area < 3600:
+        if area > 600 and area < 3600:
             candidates.append(((cx, cy), score))
 
     if candidates:
         match = min(candidates, key=lambda x: x[1])
         (cx, cy), score = match
 
-        if score < 0.2:
+        if score > 0.8:
             return (int(cx), int(cy))
 
-    print("Arrow centroid not found! Returning the center point...")
+    print("Centroid not found! Returning the center point...")
     
     height, width = img.shape
     return (width // 2, height // 2)
 
 
-def calculate_arrow_scores(contour):
+def circle_features(contour):
     hull = cv2.convexHull(contour)
 
     if len(hull) < 5:
-        return 2, (-1, -1), -1
+        return 0, (-1, -1), -1
 
     hull_area = cv2.contourArea(hull)
 
@@ -195,11 +195,12 @@ def calculate_arrow_scores(contour):
     (cx, cy), r = cv2.minEnclosingCircle(hull)
     circle_area = np.pi * r ** 2
 
-    score1 = abs(ellipse_area - hull_area) / max(ellipse_area, hull_area)
+    s1 = 1 - abs(ellipse_area - hull_area) / max(ellipse_area, hull_area)
+    s2 = 1 - abs(ellipse_area - circle_area) / max(ellipse_area, circle_area)
 
-    score2 = abs(ellipse_area - circle_area) / max(ellipse_area, circle_area)
+    score = np.mean([s1, s2])
 
-    return (score1 + score2) / 2, (ex, ey), ellipse_area
+    return score, (ex, ey), ellipse_area
 
 
 def get_reference_arrows(directions, shape):
