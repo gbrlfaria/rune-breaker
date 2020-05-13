@@ -18,7 +18,7 @@ from keras.preprocessing.image import ImageDataGenerator
 import common
 
 BATCH_SIZE = 128
-MAX_EPOCHS = 150
+MAX_EPOCHS = 240
 PATIENCE = MAX_EPOCHS // 3
 
 LOG_DIR = './logs/'
@@ -133,7 +133,7 @@ def fit(model, training, validation, batch_size):
 
 def setup_callbacks():
     log_dir = LOG_DIR + datetime.now().strftime("%Y%m%d-%H%M%S")
-    tensorboard_callback = TensorBoard(log_dir=log_dir)
+    tensorboard_callback = TensorBoard(log_dir=log_dir, write_images=True, histogram_freq=10)
 
     early_stopping = EarlyStopping(patience=PATIENCE, verbose=1, restore_best_weights=True)
 
