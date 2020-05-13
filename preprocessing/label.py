@@ -15,14 +15,14 @@ direction_label = ''
 
 plt_text = None
 
-type_dictionary = {'1': 'hollow', '2': 'full', '3': 'thin'}
+type_dictionary = {'1': 'round', '2': 'wide', '3': 'narrow'}
 
 
 def main():
     print("         Q = ignore image")
-    print("         1 = label as hollow")
-    print("         2 = label as full")
-    print("         3 = label as thin")
+    print("         1 = label as round")
+    print("         2 = label as wide")
+    print("         3 = label as narrow")
     print("ARROW KEYS = label directions\n")
 
     global type_label

@@ -30,7 +30,7 @@ def main(src_subdir, verbose, model_name):
                                 columns=('precision', 'recall', 'f1'))
 
     type_matrix = pd.DataFrame(np.zeros((4, 2), dtype=np.int32), 
-                                index=('hollow', 'full', 'thin', 'total'), 
+                                index=('round', 'wide', 'narrow', 'total'), 
                                 columns=('correct', 'incorrect'))
 
     images = common.get_files(src_dir)

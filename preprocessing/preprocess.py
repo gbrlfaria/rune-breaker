@@ -292,7 +292,7 @@ def get_direction(direction, rotation):
 
 def show_summary():
     matrix = pd.DataFrame(np.zeros((4, 5), dtype=np.int32), index=(
-        'hollow', 'full', 'thin', 'total'), columns=('down', 'left', 'right', 'up', 'total'))
+        'round', 'wide', 'narrow', 'total'), columns=('down', 'left', 'right', 'up', 'total'))
 
     images = common.get_files(common.SAMPLES_DIR)
 

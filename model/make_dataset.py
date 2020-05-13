@@ -17,7 +17,7 @@ VALIDATION_SET_RATIO = 0.5
 
 
 def main(training_set_ratio):
-    arrows = pd.DataFrame(np.zeros((3, 4), dtype=np.int32), index=('hollow', 'full', 'thin'),
+    arrows = pd.DataFrame(np.zeros((3, 4), dtype=np.int32), index=('round', 'wide', 'narrow'),
                           columns=('down', 'left', 'right', 'up'))
 
     images = common.get_files(common.SAMPLES_DIR)
@@ -36,8 +36,8 @@ def main(training_set_ratio):
             print("\nProcessing {} arrows...".format(t))
 
             for d in arrows:
-                candidates = [(p, f)
-                              for p, f in images if common.arrow_labels(f) == (d, t)]
+                candidates = [(p, f) for p, f in images 
+                              if f[-5] != 'F' and common.arrow_labels(f) == (d, t)]
 
                 print("{}: {}".format(d, len(candidates)))
 
@@ -48,6 +48,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
 
                     os.rename(path, dst_dir + filename)
+                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
 
                 candidates = [c for c in candidates if c not in training]
 
@@ -58,6 +59,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
+                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
 
                 testing = [c for c in candidates if c not in validation]
                 for path, filename in testing:
@@ -66,6 +68,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
+                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
 
     show_summary()
 
@@ -85,7 +88,7 @@ def show_summary():
 
 def get_summary_matrix(directory):
     matrix = pd.DataFrame(np.zeros((4, 5), dtype=np.int32), index=(
-        'hollow', 'full', 'thin', 'total'), columns=('down', 'left', 'right', 'up', 'total'))
+        'round', 'wide', 'narrow', 'total'), columns=('down', 'left', 'right', 'up', 'total'))
 
     images = common.get_files(directory)
 
