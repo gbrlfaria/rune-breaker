@@ -168,30 +168,17 @@ def compute_arrow_centroid(img):
         if score < 1 and area > 600 and area < 3600:
             candidates.append(((cx, cy), score))
 
-    candidates.sort(key=lambda c: c[1])
+    if candidates:
+        match = min(candidates, key=lambda x: x[1])
+        (cx, cy), score = match
 
-    # filter contours by shape with dynamic thresholding
-    centroids = []
+        if score < 0.2:
+            return (int(cx), int(cy))
 
-    t = 0.02
-    while len(centroids) == 0 and t <= 0.2:
-        for candidate in candidates:
-            centroid, score = candidate
-
-            if score < t:
-                centroids.append(centroid)
-
-        t += 0.02
-
-    if not centroids:
-        print("Arrow centroid not found! Returning the center point...")
-
-        height, width = img.shape
-        return (width // 2, height // 2)
-
-    centroid = np.mean([c for c in centroids], axis=0)
-
-    return (int(centroid[0]), int(centroid[1]))
+    print("Arrow centroid not found! Returning the center point...")
+    
+    height, width = img.shape
+    return (width // 2, height // 2)
 
 
 def calculate_arrow_scores(contour):
