@@ -48,7 +48,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
 
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
+                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
 
                 candidates = [c for c in candidates if c not in training]
 
@@ -59,7 +59,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
+                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
 
                 testing = [c for c in candidates if c not in validation]
                 for path, filename in testing:
@@ -68,7 +68,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename[:-4] + 'F' + filename[-4:])
+                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
 
     show_summary()
 
