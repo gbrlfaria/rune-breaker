@@ -107,11 +107,11 @@ def process_arrow(img, mode):
     # binarization
     img = cv2.adaptiveThreshold(img, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 5, -1)
 
+    # noise removal
+    denoise(img, threshold=8, conn=2)
+
     if mode == 'binarized':
         output = img.copy()
-
-    # noise removal
-    denoise(img)
 
     # processing
     cx, cy = compute_arrow_centroid(img)
