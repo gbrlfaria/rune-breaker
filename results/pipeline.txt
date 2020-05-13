@@ -1,20 +1,20 @@
 ----------------------------------------------------------------------
 IMAGE PREPROCESSING
 ----------------------------------------------------------------------
-preprocessing_accuracy = 0.9802
+preprocessing_accuracy = 0.9975
 
 $ python preprocessing/preprocess.py -m binarized
 
 ...
 
-Approved 642 out of 655 images (98%).
+Approved 798 out of 800 images (99%).
 
 Samples summary
         down  left  right    up  total
-hollow  1640  1640   1640  1640   6560
-full    1976  1976   1976  1976   7904
-thin    1520  1520   1520  1520   6080
-total   5136  5136   5136  5136  20544
+round   1872  1872   1872  1872   7488
+wide    2632  2632   2632  2632  10528
+narrow  1880  1880   1880  1880   7520
+total   6384  6384   6384  6384  25536
 
 Finished!
 ----------------------------------------------------------------------
@@ -29,24 +29,24 @@ $ python model/make_dataset.py -r 0.9
 
 Training set
         down  left  right    up  total
-hollow  1368  1368   1368  1368   5472
-full    1368  1368   1368  1368   5472
-thin    1368  1368   1368  1368   5472
-total   4104  4104   4104  4104  16416
+round   1684  1684   1684  1684   6736
+wide    1684  1684   1684  1684   6736
+narrow  1684  1684   1684  1684   6736
+total   5052  5052   5052  5052  20208
 
 Validation set
         down  left  right   up  total
-hollow   136   136    136  136    544
-full     304   304    304  304   1216
-thin      76    76     76   76    304
-total    516   516    516  516   2064
+round     94    94     94   94    376
+wide     474   474    474  474   1896
+narrow    98    98     98   98    392
+total    666   666    666  666   2664
 
 Testing set
         down  left  right   up  total
-hollow   136   136    136  136    544
-full     304   304    304  304   1216
-thin      76    76     76   76    304
-total    516   516    516  516   2064
+round     94    94     94   94    376
+wide     474   474    474  474   1896
+narrow    98    98     98   98    392
+total    666   666    666  666   2664
 
 Finished!
 ----------------------------------------------------------------------

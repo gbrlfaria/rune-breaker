@@ -20,7 +20,7 @@ def main(training_set_ratio):
     arrows = pd.DataFrame(np.zeros((3, 4), dtype=np.int32), index=('round', 'wide', 'narrow'),
                           columns=('down', 'left', 'right', 'up'))
 
-    images = common.get_files(common.SAMPLES_DIR)
+    images = [(p, f) for p, f in common.get_files(common.SAMPLES_DIR) if f[-5] != 'F']
 
     if images:
         for _, filename in images:
@@ -36,8 +36,7 @@ def main(training_set_ratio):
             print("\nProcessing {} arrows...".format(t))
 
             for d in arrows:
-                candidates = [(p, f) for p, f in images 
-                              if f[-5] != 'F' and common.arrow_labels(f) == (d, t)]
+                candidates = [(p, f) for p, f in images if common.arrow_labels(f) == (d, t)]
 
                 print("{}: {}".format(d, len(candidates)))
 
@@ -48,7 +47,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
 
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
+                    os.rename(flipped(path), dst_dir + flipped(filename))
 
                 candidates = [c for c in candidates if c not in training]
 
@@ -59,7 +58,7 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
+                    os.rename(flipped(path), dst_dir + flipped(filename))
 
                 testing = [c for c in candidates if c not in validation]
                 for path, filename in testing:
@@ -68,11 +67,15 @@ def main(training_set_ratio):
                         os.makedirs(dst_dir)
                         
                     os.rename(path, dst_dir + filename)
-                    os.rename(path, dst_dir + filename.replace('.png', 'F.png'))
+                    os.rename(flipped(path), dst_dir + flipped(filename))
 
     show_summary()
 
     print("\nFinished!")
+
+
+def flipped(s):
+    return s[:-4] + 'F' + s[-4:]
 
 
 def show_summary():
