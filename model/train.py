@@ -133,7 +133,7 @@ def fit(model, training, validation, batch_size):
 
 def setup_callbacks():
     log_dir = LOG_DIR + datetime.now().strftime("%Y%m%d-%H%M%S")
-    tensorboard_callback = TensorBoard(log_dir=log_dir, write_images=True, histogram_freq=10)
+    tensorboard_callback = TensorBoard(log_dir=log_dir)
 
     early_stopping = EarlyStopping(patience=PATIENCE, verbose=1, restore_best_weights=True)
 
