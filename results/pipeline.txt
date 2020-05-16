@@ -57,27 +57,27 @@ $ python model/train.py -m binarized_model128.h5 -b 128
 ...
 
 Settings
-           value
-max_epochs   150
-patience      75
-batch_size   128
+           value 
+max_epochs   240 
+patience      80 
+batch_size   128 
 
 Creating model...
 
 Creating generators...
-Found 16416 images belonging to 4 classes.
-Found 2064 images belonging to 4 classes.
+Found 20208 images belonging to 4 classes.
+Found 2664 images belonging to 4 classes.
 
 Fitting model...
 
 ...
 
-Epoch 131/150
- - 23s - loss: 0.0093 - accuracy: 0.9973 - val_loss: 5.5879e-09 - val_accuracy: 0.9974
+Epoch 228/240
+ - 28s - loss: 0.0095 - accuracy: 0.9974 - val_loss: 0.0000e+00 - val_accuracy: 0.9945
 
 ...
 
-Best epoch: 131
+Best epoch: 228
 
 Saving model...
 Model saved to ./model/binarized_model128.h5
@@ -87,28 +87,28 @@ Finished!
 VALIDATION PERFORMANCE
 ----------------------------------------------------------------------
 $ python model/classify.py -m binarized_model128.h5 -d validation
-Processing 2064 file(s) in validation/...
+Processing 2664 file(s) in validation/...
 
 Confusion matrix
        down  left  right   up
-down    516     0      0    0
-left      0   515      0    1
-right     1     0    515    0
-up        0     1      0  515
+down    662     0      3    1
+left      0   665      0    1
+right     0     0    666    0
+up        0     1      2  663
 
 Classification summary
        precision  recall      f1
-down      0.9981  1.0000  0.9990
-left      0.9981  0.9981  0.9981
-right     1.0000  0.9981  0.9990
-up        0.9981  0.9981  0.9981
+down      1.0000  0.9940  0.9970
+left      0.9985  0.9985  0.9985
+right     0.9925  1.0000  0.9962
+up        0.9970  0.9955  0.9962
 
 Accuracy by type
         correct  incorrect  accuracy
-hollow      543          1    0.9982
-full       1214          2    0.9984
-thin        304          0    1.0000
-total      2061          3    0.9985
+round       374          2    0.9947
+wide       1892          4    0.9979
+narrow      390          2    0.9949
+total      2656          8    0.9970
 
 Finished!
 ----------------------------------------------------------------------
@@ -119,25 +119,23 @@ Processing 2064 file(s) in testing/...
 
 Confusion matrix
        down  left  right   up
-down    516     0      0    0
-left      0   516      0    0
-right     1     0    515    0
-up        0     0      0  516
+down    664     0      2    0
+left      0   665      0    1
+right     0     0    666    0
+up        0     0      1  665
 
 Classification summary
-       precision  recall     f1
-down      0.9981  1.0000  0.999
-left      1.0000  1.0000  1.000
-right     1.0000  0.9981  0.999
-up        1.0000  1.0000  1.000
+       precision  recall      f1
+down      1.0000  0.9970  0.9985
+left      1.0000  0.9985  0.9992
+right     0.9955  1.0000  0.9977
+up        0.9985  0.9985  0.9985
 
 Accuracy by type
         correct  incorrect  accuracy
-hollow      544          0    1.0000
-full       1215          1    0.9992
-thin        304          0    1.0000
-total      2063          1    0.9995
-
-Finished!
+round       376          0    1.0000
+wide       1892          4    0.9979
+narrow      392          0    1.0000
+total      2660          4    0.9985
 ----------------------------------------------------------
-P(Binarized) = 0.9802 * (0.9995)^4 = 0.9782
+P(Binarized) = 0.9975 * (0.9985)^4 = 0.9915
