@@ -23,7 +23,7 @@ DATASET SPLITTING
 split = 0.90, 0.05, 0.05
 real_split = 0.79, 0.105, 0.105 
 
-$ python model/make_dataset.py -r 0.9
+$ python operations/make_dataset.py -r 0.9
 
 ...
 

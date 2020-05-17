@@ -1,5 +1,5 @@
 # Rune Breaker
-This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. To accomplish this, a model that can solve runes with an accuracy of **97.82%** was created.
+This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. To accomplish this, a model that can solve [up to **99.15%***](#biases) of the runes was created.
 
 The project provides an end-to-end pipeline that encompasses every step necessary to replicate this model. Additionally, the article below goes over all the details involved in the development process. Toward the end, it also considers possible improvements and alternatives to the current rune system. Make sure to read it.
 
@@ -14,9 +14,9 @@ The project provides an end-to-end pipeline that encompasses every step necessar
     - [Preprocessing](#preprocessing)
     - [Dataset](#dataset)
     - [Classification model](#classification-model)
-3. [Results and Interpretations](#results-and-interpretations)
+3. [Results and Observations](#results-and-observations)
     - [Performance](#performance)
-    - [Further improvements](#further-improvements)
+    - [Observations](#observations)
 4. [Final Considerations](#final-considerations)
 
 ## Introduction
@@ -56,7 +56,7 @@ Some investigation reveals that it is possible to determine the location of the 
 On the other hand, classifying arrow directions is a great candidate for machine learning solutions. First of all, each arrow could fit inside a grayscale 60×60×1 image, which is a relatively small input size. Moreover, it is very convenient to gather data, since it is possible to generate 32 different sample images for each screenshot. The only requirement is to rotate and flip each of the four arrows in the screenshot.
 
 ## The Pipeline
-In this section, we will talk about how it is possible to organize a sequence of operations that uses a set of game screenshots to create a program that classifies rune arrows. Let's start with an overview.
+In this section, we will see how to create a program that classifies rune arrows.
 
 ### Overview
 First, we should define two pipelines: the **model pipeline** and the **runtime pipeline**. See the diagram next.
@@ -76,13 +76,15 @@ First, we should collect game screenshots and label them according to the direct
 
 When run, the program iterates over all images inside the `./data/screenshots/` directory. For each screenshot, the user should press the arrow keys in the correct order to label the directions and `1`, `2`, or `3` to label the arrow shape.
 
-There are four different types of arrows, which can be arranged within three groups, as shown below.
+There are five different types of arrows, which can be arranged within three groups, as shown below.
 
 ![Arrow shapes](./docs/arrow_types.png)
 
-This distinction is made to avoid problems related to data imbalance. This topic will be better explained later on in the [dataset](#dataset) section. Before we proceed, notice that there are two types of arrows inside the **full** category. This choice was made based on the similarity between both shapes. Since they are similar, there should be no problem in doing so.
+This distinction is made to avoid problems related to data imbalance. This topic will be better explained later on in the [dataset](#dataset) section.
 
-After a screenshot is labeled, the application moves it to another folder. Finally, the file is renamed with a name that contains its labels and a unique id (e.g. `full_rdlu_123.png`, where each letter in `rdlu` represents a direction).
+After a screenshot is labeled, the application moves it to another folder. Finally, the file is renamed with a name that contains its labels and a unique id (e.g. `wide_rdlu_123.png`, where each letter in `rdlu` represents a direction).
+
+> Note: it is also possible to generate artificial samples directly using the game assets.
 
 ### Preprocessing
 With our screenshots correctly labeled, we can move to the preprocessing stage.
@@ -113,25 +115,29 @@ This is the first search region for our input image:
 As can be seen, the search problem has been reduced to an image much smaller than the original one (120×150×3 = 54,000). However, the resulting picture still has three color channels. This issue will be addressed next.
 
 #### Transforming the input
-The key to identifying the arrows is [edge detection](https://en.wikipedia.org/wiki/Edge_detection). Nevertheless, as pointed earlier, the applied obfuscation makes this process difficult. What transformations can we apply to an image to make it easier to locate the arrows?
+The key to identifying the arrows is [edge detection](https://en.wikipedia.org/wiki/Edge_detection). Nevertheless, the obfuscation and the complexity of the input image make the process more difficult. 
 
-Let's reflect on how a human can identify the outlines of the arrows despite the obfuscation. After some thought, we may realize that two important factors in this process are the differences in color and intensity between the arrows and the background. 
+To simplify things, we can compress the information of the image from three color channels into a single grayscale channel. However, we should not directly combine the R, G, and B channels. Since the arrows may be of almost any color, we cannot define a single grayscale formula that works well for any image. Instead, we will combine the HSV representation of the image, which separates color and intensity information.
 
-Knowing this, we can isolate this information. To do so, we will convert the cropped image to the HSV format and then to grayscale. The figure below shows the result of this operation.
+After some experimentation, the following linear combination yielded the best results.
 
-> Note: Gaussian Blur was also applied to the image to mitigate possible noise.
+```
+Grayscale = (0.0445 * H) + (0.6568 * S) + (0.2987 * V) 
+```
+
+Additionally, we can apply Gaussian Blur to the image to eliminate small noise. The result of these transformations is shown below.
 
 ![Grayscale search region](./docs/grayscale.png)
 
 Although the new image has only one channel instead of three (120×150×1 = 18,000), the outlines of the arrow can still be identified. We have roughly the same information with fewer data. This same result is observed in several other examples, even if at different degrees.
 
-However, we can still do more. Each pixel in the current image now ranges from 0 to 255, since it is a grayscale image. In a binarized image, on the other hand, each pixel is either 0 (black) or 255 (white). In this case, the contours are objectively clear and can be easily processed by an algorithm.
+However, we can still do more. Each pixel in the current image now ranges from 0 to 255, since it is a grayscale image. In a binarized image, on the other hand, each pixel is either 0 (black) or 255 (white). In this case, the contours are objectively clear and can be easily processed by an algorithm (or a neural network).
 
 Since the image has many variations of shading and lighting, the most appropriate way to binarize it is to use adaptive thresholding. Fortunately, [OpenCV](https://opencv.org/) provides this functionality, which can be configured with several parameters. Applying this algorithm to the grayscale image produces the following result.
 
 ![Binarized search region](./docs/binarized.png)
 
-The current result is already considerably positive. Yet, notice that there are some small "patches" scattered throughout the image. In theory, these spots constitute noise and could impair the process of detecting the contours of the image. To avoid any problems, we can use the morphology operations provided by the [skimage library](https://scikit-image.org/) to remove these undesired connected components of pixels. The next figure shows the resulting image.
+The current result is already considerably positive. Yet, notice that there are some small "patches" scattered throughout the image. To make it easier for the detection algorithm and for the arrow classifier, we can use the morphology operations provided by the [skimage library](https://scikit-image.org/) to remove this noise. The next figure shows the resulting image.
 
 ![Search region with reduced noise](./docs/reduced_noise.png)
 
@@ -155,26 +161,21 @@ Our goal is to determine which contours correspond to the surrounding circles an
 
 2. Then, a score is calculated for each remaining contour. This score is based on the difference between the contour, a perfect ellipse, and a perfect circle.
 
-3. Next, starting with a low threshold `t`, `t` is incremented until there is at least one contour with difference score less than `t`.
+3. Next, the contour with the best score is selected.
 
-4. Finally, a coordinate is calculated based on the position of all contours whose score is smaller than `t`. This coordinate corresponds to the the arrow center.
+4. Finally, if the score of the selected contour exceeds a certain threshold, the algorithm outputs its center. Otherwise, it outputs the center of the search area, which makes the algorithm more robust.
 
 The code snippet below illustrates the process.
 
 ```py
 candidates = [c for c in contours if area(c) > MIN and area(c) < MAX]
 
-surrounding_circles = []
+best_candidate = min(candidates, key=lambda c: score(c))
 
-t = initial_threshold
-while not surrounding_circles and t < min_threshold:
-    for candidate in candidates:
-        if score(candidate) < t:
-            surrounding_circles.append(candidate)
+if score(best_candidate) > THRESHOLD:
+    return center(best_candidate)
 
-    t += step
-
-(center_x, center_y) = mean_centroid(surrounding_circles)
+return center(search_area)
 ```
 
 ##### Difference/similarity score
@@ -190,20 +191,21 @@ d1 = (area(ellipse) - area(hull)) / area(ellipse)
 d2 = (area(circle) - area(ellipse)) / area(circle)
 ```
 
-The resulting score is the arithmetic mean of these two metrics. 
+The resulting score is one minus the arithmetic mean of these two metrics. 
 ```
-score = (d1 + d2) / 2
+score = 1 - (d1 + d2) / 2
 ```
 
-By doing so, the closer a contour is to a perfect circle, the closer the score will be to zero. The more distinct, the closer it will get to 1.
+By doing so, the closer a contour is to a perfect circle, the closer the score will be to one. The more distinct, the closer it will get to zero.
 
-##### Arrow center
-The fourth and last step consists in determining the center of the arrow. The algorithm computes the centroid of each enclosing ellipse among the selected contours and returns their average. If there are no contours, it returns the center of the search region instead, which makes the operation much more reliable.
+##### Output
+The figure below shows the filtered candidates, the best contour among them, and the coordinate returned by the algorithm.
 
 ![Arrow center](./docs/selected_contours.png)
 
 Of course, there are errors associated with this algorithm. Sometimes, the operation yields false positives due to the obfuscation, causing the center of the arrow to be defined incorrectly. In some cases, these errors are significant enough to prevent the arrow from being in the output image, as we will see next. Nevertheless, these cases are rather uncommon and have a small impact on the accuracy of the model.
 
+##### The next search region
 Finally, as we have previously mentioned, the coordinate returned by the algorithm is then used to define the next search region, as shown below.
 
 <p align="center">
@@ -211,7 +213,7 @@ Finally, as we have previously mentioned, the coordinate returned by the algorit
 </p>
 
 #### Generating the output
-After finding the positions, the program should generate an output. To do so, it first crops a region around the center of each arrow. The dimension of the cropped area is 60×60, which is just enough to fit an arrow. See the results in the next figure.
+After finding the positions of the arrows, the program should generate an output. To do so, it first crops a region around the center of each arrow. The dimension of the cropped area is 60×60, which is just enough to fit an arrow. See the results in the next figure.
 
 ![Preprocessing output](./docs/output.png)
 
@@ -226,25 +228,25 @@ Before discussing experimental results, let's talk about the preprocessing appli
 
 For each one of them, the user is given the option to either process or skip the screenshot. If the user chooses to process it, the script produces output samples and places them inside the `./data/samples` folder.
 
-The user should skip a screenshot when the transformations applied to the image corrupts an arrow, or when the algorithm misses its location. See a couple of examples.
+The user should skip a screenshot when it is impossible to determine the direction of an arrow. In other words, the screenshot should be skipped when the arrow is completely corrupted, or when the algorithm misses its location. See a couple of examples.
 
 ![Preprocessing errors](./docs/errors.png)
 
 #### Results
-Using 655 labeled screenshots as input and following the guidelines mentioned in the previous section, the following results were obtained.
+Using 800 labeled screenshots as input and following the guidelines mentioned in the previous section, the following results were obtained.
 
 ```
-Approved 642 out of 655 images (98%).
+Approved 798 out of 800 images (99%).
 ```
 **Samples summary**
 |            |  Down |  Left |  Right |  Up   | Total |
 |------------|------:|------:|-------:|------:|------:|
-| **Hollow** |  1640 |  1640 |  1640  |  1640 |  6560 |
-| **Full**   |  1976 |  1976 |  1976  |  1976 |  7904 |
-| **Thin**   |  1520 |  1520 |  1520  |  1520 |  6080 |
-| **Total**  |  5136 |  5136 |  5136  |  5136 | 20544 |
+| **Round**  |  1872 |  1872 |  1872  |  1872 |  7488 |
+| **Wide**   |  2632 |  2632 |  2632  |  2632 | 10528 |
+| **Narrow** |  1880 |  1880 |  1880  |  1880 |  7520 |
+| **Total**  |  6384 |  6384 |  6384  |  6384 | 25536 |
 
-In other words, the preprocessing had an accuracy of 98.02%. Plus, there are now 20,544 arrow samples that we can use to create the dataset that will be used by the classification model. Amazing!
+In other words, the preprocessing stage had an accuracy of 99.75%. Plus, there are now 25,536 arrow samples that we can use to create the dataset that will be used by the classification model. Great!
 
 ### Dataset
 In this step of the pipeline, the objective is to divide the generated samples into training, validation, and testing sets. The produced dataset will then be used to train the arrow classification model. Note that the quality of the dataset has a direct impact on the performance of the model. Thus, it is essential to perform this step correctly.
@@ -266,34 +268,38 @@ One of the main obstacles that classification models may face is data imbalance.
 
 Additionally, it is necessary to define the proportion of samples in each set. An (80%, 10%, 10%) division is usually a good starting point.
 
-The [`make_dataset.py`](./model/make_dataset.py) script is responsible for creating a dataset that meets all the criteria above. Running the script with the settings below produces the following results.
+The [`make_dataset.py`](./operations/make_dataset.py) script is responsible for creating a dataset that meets all the criteria above. 
+
+> Note: to avoid data leakage, the script also ensures that each sample and its flipped counterpart are always in the same set.
+
+Running the script with the settings below produces the following results.
 
 ```
-$ python model/make_dataset.py -r 0.9
+$ python operations/make_dataset.py -r 0.9
 ```
 **Training set**
 |            | Down | Left | Right |   Up | Total |
 |------------|-----:|-----:|------:|-----:|------:|
-| **Hollow** | 1368 | 1368 | 1368  | 1368 | 5472  |
-| **Full**   | 1368 | 1368 | 1368  | 1368 | 5472  |
-| **Thin**   | 1368 | 1368 | 1368  | 1368 | 5472  |
-| **Total**  | 4104 | 4104 | 4104  | 4104 | 16416 |
+| **Round** | 1684 | 1684 | 1684  | 1684 | 6736  |
+| **Wide**   | 1684 | 1684 | 1684  | 1684 | 6736  |
+| **Narrow**   | 1684 | 1684 | 1684  | 1684 | 6736  |
+| **Total**  | 5052 | 5052 | 5052  | 5052 | 20208 |
 
 **Validation set**
 |            | Down | Left | Right |  Up | Total |
 |------------|-----:|-----:|------:|----:|------:|
-| **Hollow** | 136  | 136  | 136   | 136 | 544   |
-| **Full**   | 304  | 304  | 304   | 304 | 1216  |
-| **Thin**   | 76   | 76   | 76    | 76  | 304   |
-| **Total**  | 516  | 516  | 516   | 516 | 2064  |
+| **Round**  |  94  |  94  |  94   |  94 |  376  |
+| **Wide**   | 474  | 474  | 474   | 474 | 1896  |
+| **Narrow** |  98  |  98  |  98   |  98 |  392  |
+| **Total**  | 666  | 666  | 666   | 666 | 2664  |
 
 **Testing set**
 |            | Down | Left | Right |  Up | Total |
 |------------|-----:|-----:|------:|----:|------:|
-| **Hollow** | 136  | 136  | 136   | 136 | 544   |
-| **Full**   | 304  | 304  | 304   | 304 | 1216  |
-| **Thin**   | 76   | 76   | 76    | 76  | 304   |
-| **Total**  | 516  | 516  | 516   | 516 | 2064  |
+| **Round**  |  94  |  94  |  94   |  94 |  376  |
+| **Wide**   | 474  | 474  | 474   | 474 | 1896  |
+| **Narrow** |  98  |  98  |  98   |  98 |  392  |
+| **Total**  | 666  | 666  | 666   | 666 | 2664  |
 
 Notice that the training set is perfectly balanced on both axes. You can also see that the split between sets follows approximately (80%, 10%, 10%).
 
@@ -375,27 +381,27 @@ $ python model/train.py -m binarized_model128.h5 -b 128
 ...
 
 Settings
-           value
-max_epochs   150
-patience      75
-batch_size   128
+           value 
+max_epochs   240 
+patience      80 
+batch_size   128 
 
 Creating model...
 
 Creating generators...
-Found 16416 images belonging to 4 classes.
-Found 2064 images belonging to 4 classes.
+Found 20208 images belonging to 4 classes.
+Found 2664 images belonging to 4 classes.
 
 Fitting model...
 
 ...
 
-Epoch 131/150
- - 23s - loss: 0.0093 - accuracy: 0.9973 - val_loss: 5.5879e-09 - val_accuracy: 0.9974
+Epoch 228/240
+ - 28s - loss: 0.0095 - accuracy: 0.9974 - val_loss: 0.0000e+00 - val_accuracy: 0.9945
 
 ...
 
-Best epoch: 131
+Best epoch: 228
 
 Saving model...
 Model saved to ./model/binarized_model128.h5
@@ -407,9 +413,9 @@ The next figure shows the accuracy and loss charts for this training session.
 
 ![Evolution per epoch charts](./docs/charts.png)
 
-As we can see, the model had a **99.74%** accuracy in the best epoch for the validation set. Looking at the charts, we can also notice that the training process was quite stable.
+As we can see, the model had a **99.45%** accuracy in the best epoch for the validation set.
 
-## Results and Interpretations
+## Results and Observations
 Now that our model has been trained and validated, it is time to evaluate its performance using the testing set. In the sections below, we will show some metrics calculated for the classifier and make some considerations upon them.
 
 > You can access the complete results [here](./results.txt).
@@ -422,105 +428,86 @@ $ python model/classify.py -m binarized_model128.h5 -d testing
 **Confusion matrix**
 |           | Down | Left | Right |  Up |
 |-----------|-----:|-----:|------:|----:|
-| **Down**  | 516  | 0    | 0     | 0   |
-| **Left**  | 0    | 516  | 0     | 0   |
-| **Right** | 1    | 0    | 515   | 0   |
-| **Up**    | 0    | 0    | 0     | 516 |
+| **Down**  | 664  | 0    | 2     | 0   |
+| **Left**  | 0    | 665  | 0     | 1   |
+| **Right** | 0    | 0    | 666   | 0   |
+| **Up**    | 0    | 0    | 1     | 665 |
 
 **Classification summary**
 |           | Precision | Recall |     F1 |
 |-----------|----------:|-------:|-------:|
-| **Down**  | 0.9981    | 1.0000 | 0.9990 |
-| **Left**  | 1.0000    | 1.000  | 1.0000 |
-| **Right** | 1.0000    | 0.9981 | 0.9990 |
-| **Up**    | 1.0000    | 1.0000 | 1.0000 |
+| **Down**  | 1.0000    | 0.9970 | 0.9985 |
+| **Left**  | 1.0000    | 0.9985 | 0.9992 |
+| **Right** | 0.9955    | 1.0000 | 0.9977 |
+| **Up**    | 0.9985    | 0.9985 | 0.9985 |
 
 **Classification summary**
 |            | Correct | Incorrect | Accuracy |
 |------------|--------:|----------:|---------:|
-| **Hollow** | 544     | 0         | 1.0000   |
-| **Full**   | 1215    | 1         | 0.9992   |
-| **Thin**   | 304     | 0         | 1.0000   |
-| **Total**  | 2063    | 1         | 0.9995   |
+| **Round**  | 376     | 0         | 1.0000   |
+| **Wide**   | 1892    | 4         | 0.9979   |
+| **Narrow** | 392     | 0         | 1.0000   |
+| **Total**  | 2660    | 4         | 0.9985   |
 
 Notice the F1 scores and the accuracy per arrow type. Both of them are balanced, which means that the model is not biased toward any shape or direction.
 
-The results are remarkable. With only a single error in the training set, the model was capable of correctly classifying an arrow **99.95%** of the time! Now, let's calculate the overall accuracy of the pipeline.
+The results are remarkable. The model was able to correctly classify **99.85%** of the arrows! Now, let's calculate the overall accuracy of the pipeline.
 
 | Preprocessing    | Four arrows      | Total    |
 |------------------|------------------|----------|
-| 0.9802           | 0.9995⁴ = 0.9980 | 0.9782   |
+| 0.9975           | 0.9985⁴ = 0.9940 | 0.9915   |
 
-In other words, the pipeline is expected to solve a rune **97.82%** of the time. That is roughly equivalent to only a single mistake for every fifty runes. Amazing!
+In other words, the pipeline is expected to solve a rune **99.15%** of the time. That is roughly equivalent to only a single mistake for every hundred runes. Amazing!
 
-> **Note: similar results may be accomplished with much less than 655 screenshots!**
+> Note: similar results may be accomplished with much less than 800 screenshots
+
+### Observations
+Let's analyze the results and get some insight from the numbers above.
+
+#### The bottleneck
+Using the `-v` flag in the classification script, we can see which arrows the model was unable to classify. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. 
+
+Thus, the current bottleneck of the pipeline lies in the preprocessing stage. If improvements are made, then they should focus on the transformations or the arrow locating algorithm. As we mentioned earlier, one alternative is to apply machine learning to find the position of the arrows.
 
 #### Biases
-For the sake of integrity, we must understand some of the underlying biases behind the result we just saw. The *real* performance can only be measured in practice.
+For the sake of integrity, we must understand some of the underlying biases behind the result we just saw. The *real* performance of the model can only be measured in practice.
 
-For instance, the input screenshots are slightly biased toward the maps and situations in which they were taken, even though they are significantly diverse.
+For instance, the input screenshots are biased toward the maps and situations in which they were taken, even though they are significantly diverse.
 
 Moreover, remember that some of the screenshots were filtered during the preprocessing stage. The human interpretation of whether or not an arrow is corrupted may influence the resulting metrics.
 
 Also, when a screenshot is skipped, it is assumed that the model would not be able to solve the rune, which is not always the case. There is still a probability that the model correctly classifies an arrow 'by chance' (25% if you consider it a random event).
 
-Nonetheless, these sources of bias are not significant for the current application and can be safely disregarded.
+#### Further testing
+In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows).
 
-### Further improvements
-There is always room for improvement. Despite the remarkable results obtained by the model, we could still perform some optimizations and increase the accuracy of the pipeline up to **99%** or more. Let's examine some possibilities below.
+In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby.
 
-#### Tweaking denoising parameters
-About half of the screenshot discards during the preprocessing stage were caused by the corruption of arrow outlines. Also, many errors made by the classifier happened due to the same reason. This phenomenon is related to the denoising transformation, which may sometimes remove pixels from the arrows. Using different denoising parameters could increase both the preprocessing and classification accuracy. However, be aware that changes in these parameters could cause the algorithm to fail in cases it currently works. Thus, any tweaks should be appropriately measured.
-
-#### Applying machine learning
-As mentioned at the beginning of this article, it is also possible to predict the location of the arrows using a neural network. This neural network would have the transformed search region as input and would replace the ["locating the arrow"](#locating-the-arrow) step.
-
-Since this task allows for a considerable margin of error, this model could probably identify 100% of the arrows. Nevertheless, the performance gain would be small, since the current preprocessing accuracy is around 98%. Additionally, it is considerably more difficult to label samples and perform data augmentation compared to the arrow classification model.
-
-#### Alternative preprocessing output
-Instead of using binarized images, we can convert the search region into HSV and isolate the hue channel. The following figure illustrates the output of this operation.
-
-![Hue output](./docs/hue_output.png)
-
-By doing this, we eliminate the preprocessing errors caused by the corruption of the outlines. Nevertheless, this comes at the expense of making the input of the neural network more complex, since it now works with grayscale images.
-
-Using the same 655 screenshots as before, we obtain the following results for the alternative model.
-
-| Preprocessing    | Four arrows      | Total    |
-|------------------|------------------|----------|
-| 0.9925           | 0.9922⁴ = 0.9692 | 0.9619   |
-
-Despite the greater preprocessing accuracy, the lower classification accuracy makes it a slightly less accurate model overall. Moreover, it requires much more data to reach this accuracy in comparison to the current model. Thus, until improvements are made, it is better to stick with the model that uses thresholded images.
-
-> Note: you can use this mode using the **-m hue** flag when running the [preprocessing.py](./preprocessing/preprocess.py) script.
-
-#### Better model and parameters
-Between all components of the pipeline, the architecture and parameters of the classification model were possibly the least tested. Although the current neural network already produces satisfactory results, there are still several options to explore. Therefore, both classification models could be improved, especially the one that takes grayscale images as input. Specifically, the trends presented by the accuracy and loss charts suggest that we could achieve better results by extending the dataset, increasing the number of epochs, and tweaking the learning rate.
-
-#### Template matching
-Finally, let's talk about template matching. As mentioned earlier, this approach was significantly affected by the update that introduced obfuscation in the rune system. Yet, experiments have shown that template matching is capable of determining the position of arrows in a screenshot using only one template image. Thus, an algorithm based on this technique may yield good results for both location and direction classification if it is adjusted to use different sample images.
+Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues.
 
 ## Final Considerations
-With a moderate amount of work, we created a model capable of solving runes **97.82%** of the time. Additionally, we have seen several ways of improving this result even further. We have also seen that template matching, which is supposedly the main target of the obfuscation update, can still be used to some extent. But what do these results tell us?
+With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. What does this result tell us?
 
 ### Conclusion
 First of all, we proved that current artificial intelligence technology is capable of bypassing this CAPTCHA system with ease, which makes us wonder whether the current rune system is better than the previous one. 
 
-Considering that there have been multiple complaints from the player base (including colorblind people) regarding the obfuscation methods used, it is clear that there are significant usability drawbacks. Are the shortcomings worth the 2.18% error rate of the model, which is comparable to human performance?
+Considering that there have been multiple complaints from the player base (including colorblind people) regarding the obfuscation methods used, it is clear that there are significant usability drawbacks. Are the shortcomings worth a machine error rate comparable to human performance?
 
-While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image.
+While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image. Therefore, we are left with two issues. 
 
-Therefore, we are left with two issues. First, the current CAPTCHA system hurts user interaction without providing significant security benefits. Second, it seems to be ineffective toward some of the botting software out there.
+First, the current CAPTCHA system hurts user interaction without providing significant security benefits. 
+
+Second, it seems to be ineffective toward some of the botting software out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, the solution is also simple: surround the arrows with multiple shapes instead of circles only (although it could still be circumvented using [machine learning](#applying-machine-learning)).
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, the solution is also simple: surround the arrows with multiple shapes instead of circles only (although it could still be circumvented using machine learning).
 
-The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. Despite that, there are still some opportunities that can be explored. Let's see some of them.
+The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. **The best alternative seems to be to move away from CAPTCHA based solutions**.
+
+Despite that, there are still some opportunities that can be explored within CAPTCHA solutions. Let's see some of them.
 
 #### Overall improvements
-The changes proposed next may enhance both the quality and security of the game, regardless of the anti-botting system used. 
-
-> Note: this is only a small subset of the improvements that the game may implement. For example, behavioral data from botting accounts can be used to detect other botters.
+The changes proposed next may enhance both the quality and security of the game, regardless of the CAPTCHA system used. 
 
 ##### Dynamic difficulty
 An anti-botting system should keep a healthy balance between user-friendliness and protection against malicious software. To do so, it could reward successes while penalizing failures. For example, if a user correctly answers a rune, the next ones could contain fewer arrows. On the other hand, the game could propose a harder challenge if someone (or some program) makes many mistakes in a row.
