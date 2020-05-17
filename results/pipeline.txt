@@ -139,4 +139,9 @@ narrow      392          0    1.0000
 total      2660          4    0.9985
 ----------------------------------------------------------
 P(Binarized) = 0.9975 * (0.9985)^4 = 0.9915
-hard_test_accuracy = 16 out of 20
+
+normal_test_arrow_accuracy = (1)^4 = 1
+normal_test_rune_accuracy = 20 out of 20
+
+hard_test_arrow_accuracy = (0.9504)^4 = 0.8159
+hard_test_rune_accuracy = 16 out of 20 = 0.8
