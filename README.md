@@ -29,7 +29,7 @@ In an attempt to protect the game from botting, MapleStory employs a kind of [CA
 
 The player is then asked to type the direction of the four arrows. If the directions are correct, the rune disappears and the player receives a buff. However, if the user does not activate it within a certain amount of time, they will stop receiving any rewards for hunting monsters, hampering the performance of bots that cannot handle runes.
 
-That said, our goal is to create a computer program capable of determining the direction of the arrows when given a game screenshot.
+That said, our goal is to create a computer program capable of determining the direction of the arrows when given a screenshot from the game.
 
 ### What is the challenge?
 If arrows were static textures, it would be possible to apply a template matching algorithm and reliably determine the arrow directions. Interestingly, that is how runes were initially implemented.
@@ -56,7 +56,7 @@ Some investigation reveals that it is possible to determine the location of the 
 On the other hand, classifying arrow directions is a great candidate for machine learning solutions. First of all, each arrow could fit inside a grayscale 60×60×1 image, which is a relatively small input size. Moreover, it is very convenient to gather data, since it is possible to generate 32 different sample images for each screenshot. The only requirement is to rotate and flip each of the four arrows in the screenshot.
 
 ## The Pipeline
-In this section, we will see how to create a program that classifies rune arrows.
+In this section, we will see how to put these steps together to create a program that classifies rune arrows.
 
 ### Overview
 First, we should define two pipelines: the **model pipeline** and the **runtime pipeline**. See the diagram next.
@@ -84,7 +84,7 @@ This distinction is made to avoid problems related to data imbalance. This topic
 
 After a screenshot is labeled, the application moves it to another folder. Finally, the file is renamed with a name that contains its labels and a unique id (e.g. `wide_rdlu_123.png`, where each letter in `rdlu` represents a direction).
 
-> Note: it is also possible to generate artificial samples directly using the game assets.
+> Note: instead of manually collecting and labeling game screenshots, it is also possible to automatically generate artificial samples by directly using the game assets.
 
 ### Preprocessing
 With our screenshots correctly labeled, we can move to the preprocessing stage.
@@ -117,9 +117,9 @@ As can be seen, the search problem has been reduced to an image much smaller tha
 #### Transforming the input
 The key to identifying the arrows is [edge detection](https://en.wikipedia.org/wiki/Edge_detection). Nevertheless, the obfuscation and the complexity of the input image make the process more difficult. 
 
-To simplify things, we can compress the information of the image from three color channels into a single grayscale channel. However, we should not directly combine the R, G, and B channels. Since the arrows may be of almost any color, we cannot define a single grayscale formula that works well for any image. Instead, we will combine the HSV representation of the image, which separates color and intensity information.
+To make things simpler, we can compress the information of the image from three color channels into a single grayscale channel. However, we should not directly combine the R, G, and B channels. Since the arrows may be of almost any color, we cannot define a single formula that works well for any image. Instead, we will combine the HSV representation of the image, which separates color and intensity information into three different components.
 
-After some experimentation, the following linear combination yielded the best results.
+After some experimentation, the following linear transformation yielded the best results.
 
 ```
 Grayscale = (0.0445 * H) + (0.6568 * S) + (0.2987 * V) 
@@ -170,7 +170,7 @@ The code snippet below illustrates the process.
 ```py
 candidates = [c for c in contours if area(c) > MIN and area(c) < MAX]
 
-best_candidate = min(candidates, key=lambda c: score(c))
+best_candidate = max(candidates, key=lambda c: score(c))
 
 if score(best_candidate) > THRESHOLD:
     return center(best_candidate)
@@ -183,30 +183,29 @@ The key to the accuracy of the operation above is the quality of the score. Its 
 
 1. The difference between the convex hull of the contour and its minimum enclosing ellipse. Considering that the area of the ellipse is larger:
 ```
-d1 = (area(ellipse) - area(hull)) / area(ellipse)
+s1 = (area(ellipse) - area(hull)) / area(ellipse)
 ```
 
 2. The difference between the minimum enclosing ellipse and its minimum enclosing circle. Considering that the area of the circle is larger:
 ```
-d2 = (area(circle) - area(ellipse)) / area(circle)
+s2 = (area(circle) - area(ellipse)) / area(circle)
 ```
 
 The resulting score is one minus the arithmetic mean of these two metrics. 
 ```
-score = 1 - (d1 + d2) / 2
+score = 1 - (s1 + s2) / 2
 ```
 
 By doing so, the closer a contour is to a perfect circle, the closer the score will be to one. The more distinct, the closer it will get to zero.
 
-##### Output
-The figure below shows the filtered candidates, the best contour among them, and the coordinate returned by the algorithm.
+##### Iteration output
+The figure below shows the filtered candidates (green), the best contour among them (blue), and the coordinate returned by one iteration of the algorithm (red).
 
 ![Arrow center](./docs/selected_contours.png)
 
-Of course, there are errors associated with this algorithm. Sometimes, the operation yields false positives due to the obfuscation, causing the center of the arrow to be defined incorrectly. In some cases, these errors are significant enough to prevent the arrow from being in the output image, as we will see next. Nevertheless, these cases are rather uncommon and have a small impact on the accuracy of the model.
+Of course, there are errors associated with this algorithm. Sometimes, the operation yields false positives due to the obfuscation, causing the center of the arrow to be defined incorrectly. In some cases, these errors are significant enough to prevent the arrow from being in the output image, as we will see next. Nevertheless, these cases are rather uncommon and have a relatively small impact on the accuracy of the model.
 
-##### The next search region
-Finally, as we have previously mentioned, the coordinate returned by the algorithm is then used to define the next search region, as shown below.
+Finally, the coordinate returned by the algorithm is then used to define the next search region, as shown below. After that, the algorithm repeats until it processes all four arrows.
 
 <p align="center">
     (x<sub>search</sub>, y<sub>search</sub>) = (x<sub>center</sub> + <strong>d</strong>, y<sub>center</sub>)
@@ -262,11 +261,7 @@ This is the dataset used to evaluate the generalization of the model and to opti
 #### Testing set
 This is the set used to determine the final performance of the model.
 
-With these definitions in place, let's address some issues.
-
-One of the main obstacles that classification models may face is data imbalance. When the training set is asymmetric, the model may not generalize well, which causes it to perform poorly for the underrepresented samples. Therefore, the training set should have an (approximately) equal number of samples from each shape and direction.
-
-Additionally, it is necessary to define the proportion of samples in each set. An (80%, 10%, 10%) division is usually a good starting point.
+With these definitions in place, let's address some issues. One of the main obstacles that classification models may face is data imbalance. When the training set is asymmetric, the model may not generalize well, which causes it to perform poorly for the underrepresented samples. Therefore, the training set should have an (approximately) equal number of samples from each shape and direction. Additionally, it is necessary to define the proportion of samples in each set. An (80%, 10%, 10%) division is usually a good starting point.
 
 The [`make_dataset.py`](./operations/make_dataset.py) script is responsible for creating a dataset that meets all the criteria above. 
 
@@ -368,11 +363,7 @@ aug = ImageDataGenerator(width_shift_range=0.125, height_shift_range=0.125, zoom
 ```
 
 ### Training the model
-With that set, we can fit the model to the data. The [`train.py`](./model/train.py) script is responsible for this and other processes.
-
-Based on a few input parameters, the script creates the neural network, performs data augmentation, fits the model to the data, and saves the trained model to a file.
-
-Moreover, to further improve the performance of the resulting model, the program applies mini-batch gradient descent and early stopping.
+With that set, we can fit the model to the data with the [`train.py`](./model/train.py) script. Based on a few input parameters, the script creates the neural network, performs data augmentation, fits the model to the data, and saves the trained model to a file. Moreover, to further improve the performance of the resulting model, the program applies mini-batch gradient descent and early stopping.
 
 Running the following command, we obtain the results below.
 ```
@@ -409,16 +400,14 @@ Model saved to ./model/binarized_model128.h5
 Finished!
 ```
 
-The next figure shows the accuracy and loss charts for this training session.
+As we can see, the model had a **99.45%** accuracy in the best epoch for the validation set. The next figure shows the accuracy and loss charts for this training session.
 
 ![Evolution per epoch charts](./docs/charts.png)
-
-As we can see, the model had a **99.45%** accuracy in the best epoch for the validation set.
 
 ## Results and Observations
 Now that our model has been trained and validated, it is time to evaluate its performance using the testing set. In the sections below, we will show some metrics calculated for the classifier and make some considerations upon them.
 
-> You can access the complete results [here](./results.txt).
+> Note: you can access the complete results [here](./results).
 
 ### Performance
 To calculate the performance of the model, we can run the [`classify.py`](./model/classify.py) script with the following parameters.
@@ -462,49 +451,45 @@ In other words, the pipeline is expected to solve a rune **99.15%** of the time.
 > Note: similar results may be accomplished with much less than 800 screenshots
 
 ### Observations
-Let's analyze the results and get some insight from the numbers above.
+Let's make some observations about the development process and get some insight into the results.
 
 #### The bottleneck
-Using the `-v` flag in the classification script, we can see which arrows the model was unable to classify. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. 
+We can see which arrows the model was unable to classify by applying the `-v` flag to the classification script. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. Thus, we conclude that main the bottleneck of the pipeline lies in the preprocessing stage. 
 
-Thus, the current bottleneck of the pipeline lies in the preprocessing stage. If improvements are made, then they should focus on the transformations or the arrow locating algorithm. As we mentioned earlier, one alternative is to apply machine learning to find the position of the arrows.
+If improvements are made, then they should focus on the algorithms responsible for locating the arrows. As we have mentioned earlier, one alternative to the algorithm that finds the position of the arrows is to use machine learning. This could increase the accuracy of the pipeline, especially when dealing with 'hard-to-see' images. Another possible improvement may be to optimize the parameters in the preprocessing stage for runes that are very hard to solve.
+
+It is also possible to improve the performance of the model in the runtime pipeline. For instance, the software may take three screenshots from the rune at different moments and classify all of them. After that, the directions of the arrows can be determined by combining the three classifications. This may reduce the error rate caused by specific frames, such as when a damage number stays over one of the arrows.
 
 #### Biases
 For the sake of integrity, we must understand some of the underlying biases behind the result we just saw. The *real* performance of the model can only be measured in practice.
 
-For instance, the input screenshots are biased toward the maps and situations in which they were taken, even though they are significantly diverse.
-
-Moreover, remember that some of the screenshots were filtered during the preprocessing stage. The human interpretation of whether or not an arrow is corrupted may influence the resulting metrics.
-
-Also, when a screenshot is skipped, it is assumed that the model would not be able to solve the rune, which is not always the case. There is still a probability that the model correctly classifies an arrow 'by chance' (25% if you consider it a random event).
+For instance, the input screenshots are biased toward the maps and situations in which they were taken, even though the images are significantly diverse. Moreover, remember that some of the screenshots were filtered during the preprocessing stage. The human interpretation of whether or not an arrow is corrupted may influence the resulting metrics. Also, when a screenshot is skipped, it is assumed that the model would not be able to solve the rune, which is not always the case. There is still a probability that the model correctly classifies an arrow 'by chance' (25% if you consider it a random event).
 
 #### Further testing
-In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows).
+In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows). 
 
-In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby.
-
-Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues.
+In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues. Moreover, we can apply the improvements discussed in the [observations section](#observations).
 
 ## Final Considerations
-With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. What does this result tell us?
+With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. We have also seen some ways to improve this result even further. But what do these results tell us?
 
 ### Conclusion
 First of all, we proved that current artificial intelligence technology is capable of bypassing this CAPTCHA system with ease, which makes us wonder whether the current rune system is better than the previous one. 
 
 Considering that there have been multiple complaints from the player base (including colorblind people) regarding the obfuscation methods used, it is clear that there are significant usability drawbacks. Are the shortcomings worth a machine error rate comparable to human performance?
 
-While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image. Therefore, we are left with two issues. 
+While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. *Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself*. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image. Therefore, we are left with two issues. 
 
-First, the current CAPTCHA system hurts user interaction without providing significant security benefits. 
+First, the current rune system hurts user interaction without providing meaningful security benefits. 
 
 Second, it seems to be ineffective toward some of the botting software out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, the solution is also simple: surround the arrows with multiple shapes instead of circles only (although it could still be circumvented using machine learning).
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a simple solution is to use multiple shapes instead of surrounding circles only, although it can still be bypassed.
 
-The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. **The best alternative seems to be to move away from CAPTCHA based solutions**.
+The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. The best alternative seems to be to move away from CAPTCHA-based solutions and employ, for example, behavior-based approaches.
 
-Despite that, there are still some opportunities that can be explored within CAPTCHA solutions. Let's see some of them.
+Despite that, there are some opportunities that can be explored within this type of anti-botting system. Let's see some of them.
 
 #### Overall improvements
 The changes proposed next may enhance both the quality and security of the game, regardless of the CAPTCHA system used. 
@@ -512,12 +497,12 @@ The changes proposed next may enhance both the quality and security of the game,
 ##### Dynamic difficulty
 An anti-botting system should keep a healthy balance between user-friendliness and protection against malicious software. To do so, it could reward successes while penalizing failures. For example, if a user correctly answers a rune, the next ones could contain fewer arrows. On the other hand, the game could propose a harder challenge if someone (or some program) makes many mistakes in a row.
 
-In addition to this, the rune delays should be adjusted. Currently, no matter how many times a user fails to solve a rune, the delay between activations is only five seconds. A better alternative is to increase the amount of time exponentially after a certain amount of errors. By doing so, it is much harder for an attacker to collect data from the game. As a side effect, this measure also impairs the performance of inaccurate models that need several attempts to solve a rune.
+In addition to this, the rune delays should be adjusted. Currently, no matter how many times a user fails to solve a rune, the delay between activations is only five seconds. A better alternative is to increase the amount of time exponentially after a certain amount of errors. By doing so, it is harder for an attacker to collect data from the game. As a side effect, this measure also impairs the performance of inaccurate models that need several attempts to solve a rune.
 
 ##### Better robustness
 Currently, the game client is responsible for both generating and validating rune challenges, which allows hackers to perform code/packet injection and forge rune validation. Because of this, botting tools can bypass this protection system without processing the game screen, as we have mentioned previously.
 
-While it is considerably difficult to accomplish such a feat, which involves bypassing the protection mechanisms of the game, this vulnerability is enough to defeat the purpose of the runes to a significant extent.
+While it is considerably difficult to accomplish such a feat, which involves bypassing the protection mechanisms of the game, this vulnerability is enough to defeat the purpose of the runes to some extent.
 
 One way to solve this issue is to move both generation and validation processes to the server. By doing so, the server would forward the image of the generated CAPTCHA through the network, while the client would be responsible for sending back the user input. Thereby, the only possible way to bypass this mechanism would be through image analysis. Although it was reasonably simple to perform image analysis with the current rune system, it is not nearly as trivial with other alternatives like the ones we will discuss next.
 
