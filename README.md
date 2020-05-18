@@ -1,7 +1,7 @@
 # Rune Breaker
-This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. To accomplish this, a model that can solve [up to **99.15%***](#biases) of the runes was created.
+This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. In the process, a model that can solve [**up to 99.15%***](#biases) of the runes was created.
 
-The project provides an end-to-end pipeline that encompasses every step necessary to replicate this model. Additionally, the article below goes over all the details involved in the development process. Toward the end, it also considers possible improvements and alternatives to the current rune system. Make sure to read it.
+The project provides an end-to-end pipeline that encompasses every step necessary to replicate this model. Additionally, the article below goes over all the details involved during the development of the model. Toward the end, it also considers possible improvements and alternatives to the current rune system. Make sure to read it.
 
 ## Summary
 1. [Introduction](#introduction)
@@ -63,7 +63,7 @@ First, we should define two pipelines: the **model pipeline** and the **runtime 
 
 ![Pipeline diagram](./docs/pipelines.png)
 
-The model pipeline is responsible for taking a set of screenshots as input and perform a sequence of steps to create an arrow classification model. On the other hand, the runtime model represents a hypothetical botting software. This software would use parts of the model pipeline in addition to the trained classifier to activate runes during the game runtime.
+The model pipeline is responsible for taking a set of screenshots as input and performing a sequence of steps to create an arrow classification model. On the other hand, the runtime model represents a hypothetical botting software. This software would use parts of the model pipeline in addition to the trained classifier to activate runes during the game runtime.
 
 Considering the purposes of this project, only the model pipeline will be discussed. 
 
@@ -133,11 +133,11 @@ Although the new image has only one channel instead of three (120×150×1 = 18,0
 
 However, we can still do more. Each pixel in the current image now ranges from 0 to 255, since it is a grayscale image. In a binarized image, on the other hand, each pixel is either 0 (black) or 255 (white). In this case, the contours are objectively clear and can be easily processed by an algorithm (or a neural network).
 
-Since the image has many variations of shading and lighting, the most appropriate way to binarize it is to use adaptive thresholding. Fortunately, [OpenCV](https://opencv.org/) provides this functionality, which can be configured with several parameters. Applying this algorithm to the grayscale image produces the following result.
+Since the image has many variations of shading and lighting, the most appropriate way to binarize it is to use adaptive thresholding. Fortunately, [OpenCV](https://opencv.org/) provides this functionality out-of-the-box, which can be configured with several parameters. Applying this algorithm to the grayscale image produces the following result.
 
 ![Binarized search region](./docs/binarized.png)
 
-The current result is already considerably positive. Yet, notice that there are some small "patches" scattered throughout the image. To make it easier for the detection algorithm and for the arrow classifier, we can use the morphology operations provided by the [skimage library](https://scikit-image.org/) to remove this noise. The next figure shows the resulting image.
+The current result is already considerably positive. Yet, notice that there are some small "patches" scattered throughout the image. To make it easier for the detection algorithm and for the arrow classifier, we can use the morphology operations provided by the [skimage library](https://scikit-image.org/) to mitigate this noise. The next figure shows the resulting image.
 
 ![Search region with reduced noise](./docs/reduced_noise.png)
 
@@ -155,7 +155,7 @@ Fortunately, some outlines are much simpler to identify: the circles that surrou
 Still, another question remains. How to identify these circles then? There are *several* ways to solve this problem. One of the first alternatives that may come to mind is the [Circle Hough Transform](https://en.wikipedia.org/wiki/Circle_Hough_Transform). Unfortunately, this method is known to be unstable when applied to noisy images. Preliminary tests confirmed that this method produces unreliable results for our input images. Because of this, I decided to use morphological analysis instead.
 
 ##### Algorithm
-Our goal is to determine which contours correspond to the surrounding circles and then calculate the position of the arrow, which sits in the middle of these circles. To do this, we can use the following algorithm.
+Our goal is to determine which contours correspond to the surrounding circles and then calculate the position of the arrows, which sit in the middle of the circumferences. To do this, we can use the following algorithm.
 
 1. First, the program removes all contours whose area is too small or too large compared to a real surrounding circle.
 
@@ -163,7 +163,7 @@ Our goal is to determine which contours correspond to the surrounding circles an
 
 3. Next, the contour with the best score is selected.
 
-4. Finally, if the score of the selected contour exceeds a certain threshold, the algorithm outputs its center. Otherwise, it outputs the center of the search area, which makes the algorithm more robust.
+4. Finally, if the score of the selected contour exceeds a certain threshold, the algorithm outputs its center. Otherwise, it outputs the center of the search area as a fallback, which makes the algorithm more robust.
 
 The code snippet below illustrates the process.
 
@@ -175,7 +175,7 @@ best_candidate = max(candidates, key=lambda c: score(c))
 if score(best_candidate) > THRESHOLD:
     return center(best_candidate)
 
-return center(search_area)
+return center(search_region)
 ```
 
 ##### Similarity score
@@ -221,7 +221,7 @@ But, as mentioned earlier, we can augment the output by rotating and flipping th
 ![Augmented preprocessing output](./docs/augmented_output.png)
 
 #### Application interface
-Before discussing experimental results, let's talk about the preprocessing application interface. When the user runs the script, it displays the following window for each screenshot in the `./data/labeled/` folder.
+Before discussing the experimental results, let's talk about the preprocessing application interface. When the user runs the script, it displays the following window for each screenshot in the `./data/labeled/` folder.
 
 ![Preprocess script window](./docs/preprocessor_window.png)
 
@@ -342,6 +342,7 @@ def make_model():
     model.add(Dense(64, activation='relu'))
     model.add(Dropout(0.2))
 
+    # Output layer
     model.add(Dense(4, activation='softmax'))
 
     model.compile(optimizer='adam',
@@ -363,7 +364,7 @@ aug = ImageDataGenerator(width_shift_range=0.125, height_shift_range=0.125, zoom
 ```
 
 ### Training the model
-With that set, we can fit the model to the data with the [`train.py`](./model/train.py) script. Based on a few input parameters, the script creates the neural network, performs data augmentation, fits the model to the data, and saves the trained model to a file. Moreover, to further improve the performance of the resulting model, the program applies mini-batch gradient descent and early stopping.
+With that set, we can fit the model to the data with the [`train.py`](./model/train.py) script. Based on a few input parameters, the script creates the neural network, performs data augmentation, fits the model to the data, and saves the trained model to a file. Moreover, to improve the performance of the training process, the program applies mini-batch gradient descent and early stopping.
 
 Running the following command, we obtain the results below.
 ```
@@ -454,9 +455,9 @@ In other words, the pipeline is expected to solve a rune **99.15%** of the time.
 Before we wrap-up, it is critical to make some observations about the development process and get some insight into the results.
 
 #### The bottleneck
-We can see which arrows the model was unable to classify by applying the `-v` flag to the classification script. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. Thus, we conclude that main the bottleneck of the pipeline lies in the preprocessing stage. 
+We can see which arrows the model was unable to classify by applying the `-v` flag to the classification script. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. Thus, we conclude that the main bottleneck of the pipeline lies in the preprocessing stage. 
 
-If improvements are made, then they should focus on the algorithms responsible for locating the arrows. As we have mentioned earlier, one alternative to the algorithm that finds the position of the arrows is to use machine learning. This could increase the accuracy of the pipeline, especially when dealing with 'hard-to-see' images. Another possible improvement may be to optimize the parameters in the preprocessing stage for runes that are very hard to solve.
+If improvements are made, then they should focus on the algorithms responsible for transforming and locating the arrows. As we have mentioned earlier, one alternative to the algorithm that finds the position of the arrows is to use machine learning. This could increase the accuracy of the pipeline, especially when dealing with 'hard-to-see' images. Another possible improvement may be to optimize the parameters in the preprocessing stage for runes that are very hard to solve.
 
 It is also possible to improve the performance of the model in the **runtime pipeline**. For instance, the software may take three screenshots from the rune at different moments and classify all of them. After that, the directions of the arrows can be determined by combining the three classifications. This may reduce the error rate caused by specific frames, such as when damage numbers stay behind the arrows.
 
@@ -468,7 +469,7 @@ For instance, the input screenshots are biased toward the maps and situations in
 #### Further testing
 In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows). 
 
-In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues. Moreover, we can apply the improvements discussed in [the bottleneck section](#the-bottleneck).
+In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance is very good for the purposes of the model. Moreover, we can still apply the improvements discussed in [the bottleneck section](#the-bottleneck).
 
 ## Final Considerations
 With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. We have also seen some ways to improve this result even further. But what do these results tell us?
