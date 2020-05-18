@@ -159,7 +159,7 @@ Our goal is to determine which contours correspond to the surrounding circles an
 
 1. First, the program removes all contours whose area is too small or too large compared to a real surrounding circle.
 
-2. Then, a score is calculated for each remaining contour. This score is based on the difference between the contour, a perfect ellipse, and a perfect circle.
+2. Then, a score is calculated for each remaining contour. This score is based on the similarity between the contour, a perfect ellipse, and a perfect circle.
 
 3. Next, the contour with the best score is selected.
 
@@ -178,7 +178,7 @@ if score(best_candidate) > THRESHOLD:
 return center(search_area)
 ```
 
-##### Difference/similarity score
+##### Similarity score
 The key to the accuracy of the operation above is the quality of the score. Its principle is simple: the surrounding circles tend to resemble a perfect circumference more than other objects do. With that in mind, it is possible to measure the likeliness that a contour is a surrounding circle using the following metrics.
 
 1. The difference between the convex hull of the contour and its minimum enclosing ellipse. Considering that the area of the ellipse is larger:
@@ -451,14 +451,14 @@ In other words, the pipeline is expected to solve a rune **99.15%** of the time.
 > Note: similar results may be accomplished with much less than 800 screenshots
 
 ### Observations
-Let's make some observations about the development process and get some insight into the results.
+Before we wrap-up, it is critical to make some observations about the development process and get some insight into the results.
 
 #### The bottleneck
 We can see which arrows the model was unable to classify by applying the `-v` flag to the classification script. Analyzing the results, we see that most of them were almost off-screen and few of them were heavily distorted. Thus, we conclude that main the bottleneck of the pipeline lies in the preprocessing stage. 
 
 If improvements are made, then they should focus on the algorithms responsible for locating the arrows. As we have mentioned earlier, one alternative to the algorithm that finds the position of the arrows is to use machine learning. This could increase the accuracy of the pipeline, especially when dealing with 'hard-to-see' images. Another possible improvement may be to optimize the parameters in the preprocessing stage for runes that are very hard to solve.
 
-It is also possible to improve the performance of the model in the runtime pipeline. For instance, the software may take three screenshots from the rune at different moments and classify all of them. After that, the directions of the arrows can be determined by combining the three classifications. This may reduce the error rate caused by specific frames, such as when a damage number stays over one of the arrows.
+It is also possible to improve the performance of the model in the **runtime pipeline**. For instance, the software may take three screenshots from the rune at different moments and classify all of them. After that, the directions of the arrows can be determined by combining the three classifications. This may reduce the error rate caused by specific frames, such as when damage numbers stay behind the arrows.
 
 #### Biases
 For the sake of integrity, we must understand some of the underlying biases behind the result we just saw. The *real* performance of the model can only be measured in practice.
@@ -468,7 +468,7 @@ For instance, the input screenshots are biased toward the maps and situations in
 #### Further testing
 In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows). 
 
-In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues. Moreover, we can apply the improvements discussed in the [observations section](#observations).
+In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance of the model is still very good for its purpose and should meet its goal without major issues. Moreover, we can apply the improvements discussed in [the bottleneck section](#the-bottleneck).
 
 ## Final Considerations
 With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. We have also seen some ways to improve this result even further. But what do these results tell us?
@@ -480,14 +480,12 @@ Considering that there have been multiple complaints from the player base (inclu
 
 While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. *Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself*. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image. Therefore, we are left with two issues. 
 
-First, the current rune system hurts user interaction without providing meaningful security benefits. 
-
-Second, it seems to be ineffective toward some of the botting software out there.
+First, the current rune system hurts user interaction without providing meaningful security benefits. Second, it seems to be ineffective toward some of the botting software out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a simple solution is to use multiple shapes instead of surrounding circles only, although it can still be bypassed.
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a simple solution is to use multiple shapes instead of surrounding circles only, although it could still be bypassed.
 
-The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. The best alternative seems to be to move away from CAPTCHA-based solutions and employ, for example, behavior-based approaches.
+The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. *The best alternative seems to be to move away from CAPTCHA-based solutions* and employ, for example, behavior-based approaches.
 
 Despite that, there are some opportunities that can be explored within this type of anti-botting system. Let's see some of them.
 
