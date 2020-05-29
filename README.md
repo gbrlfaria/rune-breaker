@@ -1,7 +1,9 @@
 # Rune Breaker
-This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. In the process, a model that can solve [**up to 99.15%***](#biases) of the runes was created.
+This project aims to test the effectiveness of one of MapleStory's anti-botting mechanisms: the rune system. In the process, a model that can solve [**up to 99.15%***](#errors-and-biases) of the runes was created.
 
 The project provides an end-to-end pipeline that encompasses every step necessary to replicate this model. Additionally, the article below goes over all the details involved during the development of the model. Toward the end, it also considers possible improvements and alternatives to the current rune system. Make sure to read it.
+
+> This project was created solely for research and learning purposes. The usage of this project for malicious purposes in-game is against Nexon's terms of service and, thus, *discouraged*.
 
 ## Summary
 1. [Introduction](#introduction)
@@ -461,52 +463,52 @@ If improvements are made, then they should focus on the algorithms responsible f
 
 It is also possible to improve the performance of the model in the **runtime pipeline**. For instance, the software may take three screenshots from the rune at different moments and classify all of them. After that, the directions of the arrows can be determined by combining the three classifications. This may reduce the error rate caused by specific frames, such as when damage numbers stay behind the arrows.
 
-#### Biases
-For the sake of integrity, we must understand some of the underlying biases behind the result we just saw. The *real* performance of the model can only be measured in practice.
+#### Errors and biases
+For the sake of integrity, we must understand some of the underlying errors and biases behind the result we just saw. The *real* performance of the model can only be measured in practice.
 
 For instance, the input screenshots are biased toward the maps and situations in which they were taken, even though the images are significantly diverse. Moreover, remember that some of the screenshots were filtered during the preprocessing stage. The human interpretation of whether or not an arrow is corrupted may influence the resulting metrics. Also, when a screenshot is skipped, it is assumed that the model would not be able to solve the rune, which is not always the case. There is still a probability that the model correctly classifies an arrow 'by chance' (25% if you consider it a random event).
 
 #### Further testing
 In a small test with 20 new screenshots, the model was able to solve all the runes. However, in another experiment using exclusively screenshots with lots of action, *especially ones with damage numbers flying around*, the model was able to solve 16 out of 20 runes (80% of the runes and 95% of the arrows). 
 
-In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance is very good for the purposes of the model. Moreover, we can still apply the improvements discussed in [the bottleneck section](#the-bottleneck).
+In reality, the performance of the model varies according to many factors, such as the player's class, the spawn location of the rune, and the monsters nearby. Nonetheless, the *overall* performance is very good for the purposes of the model. Additionally, we can still apply the improvements discussed in [the bottleneck section](#the-bottleneck).
 
 ## Final Considerations
 With a moderate amount of work, we created a model capable of solving runes up to **99.15%** of the time. We have also seen some ways to improve this result even further. But what do these results tell us?
 
 ### Conclusion
-First of all, we proved that current artificial intelligence technology is capable of bypassing this CAPTCHA system with ease, which makes us wonder whether the current rune system is better than the previous one. 
+First of all, we proved that current artificial intelligence technology can easily bypass the employed visual obfuscation, reaching human-level performance. We also know that these obfuscation methods bring significant usability drawbacks since there have been multiple complaints from the player base, including colorblind people.
 
-Considering that there have been multiple complaints from the player base (including colorblind people) regarding the obfuscation methods used, it is clear that there are significant usability drawbacks. Are the shortcomings worth a machine error rate comparable to human performance?
+Moreover, while the current system forced us to develop a new model from scratch, one would expect it to be more elaborate and expensive. Also, even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune. This is not only a whole different problem but possibly a more difficult one. This makes us wonder whether the part of the rune system update that introduced the visual obfuscation had a significant impact on the botting ecosystem.
 
-While it is true that we had to develop a new model from scratch, one would expect it to be more elaborate than the one we created. Also, it is debatable whether the rune system update had a significant impact on the botting ecosystem. *Even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune, which is already a problem by itself*. Moreover, commercially available botting tools have been immune to visual gimmicks since runes first appeared. As we will see, they do not need to process any image. Therefore, we are left with two issues. 
+Additionally, "commercial-level" botting tools have been immune to visual tricks since runes first appeared. As we will see, they do not need to process any image. 
 
-First, the current rune system hurts user interaction without providing meaningful security benefits. Second, it seems to be ineffective toward some of the botting software out there.
+Therefore, we are left with two issues. First, the current rune system hurts user interaction without providing meaningful security benefits. Second, it is somewhat ineffective toward some of the botting software available out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a simple solution is to use multiple shapes instead of surrounding circles only, although it could still be bypassed.
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a quick patch to make it stop working is to use multiple shapes instead of surrounding circles only. Unfortunately, it would still be feasible to update the project and make it work again.
 
-The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. *The best alternative seems to be to move away from CAPTCHA-based solutions* and employ, for example, behavior-based approaches.
+The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. **The best alternative seems to be to move away from this type of CAPTCHA**.
 
-Despite that, there are some opportunities that can be explored within this type of anti-botting system. Let's see some of them.
+Despite that, there are still some opportunities that can be explored within this type of anti-botting system. Let's see some of them.
 
 #### Overall improvements
 The changes proposed next may enhance both the quality and security of the game, regardless of the CAPTCHA system used. 
 
 ##### Dynamic difficulty
-An anti-botting system should keep a healthy balance between user-friendliness and protection against malicious software. To do so, it could reward successes while penalizing failures. For example, if a user correctly answers a rune, the next ones could contain fewer arrows. On the other hand, the game could propose a harder challenge if someone (or some program) makes many mistakes in a row.
+An anti-botting system should keep a healthy balance between user-friendliness and protection against malicious software. To do so, the system could reward successes while penalizing failures. For example, if a user correctly answers many runes, the next ones could contain fewer arrows. On the other hand, the game could propose a harder challenge if someone (or some program) makes many mistakes in a row. 
 
-In addition to this, the rune delays should be adjusted. Currently, no matter how many times a user fails to solve a rune, the delay between activations is only five seconds. A better alternative is to increase the amount of time exponentially after a certain amount of errors. By doing so, it is harder for an attacker to collect data from the game. As a side effect, this measure also impairs the performance of inaccurate models that need several attempts to solve a rune.
+In addition to this, the delays between attempts could be adjusted. Currently, no matter how many times a user fails to solve a rune, the delay between activations is only five seconds. A better alternative is to increase the amount of time exponentially after a certain amount of errors. This measure impairs the performance of inaccurate models that need several attempts to solve a rune. As a side-effect, it is also harder for an attacker to collect data from the game.
 
 ##### Better robustness
 Currently, the game client is responsible for both generating and validating rune challenges, which allows hackers to perform code/packet injection and forge rune validation. Because of this, botting tools can bypass this protection system without processing the game screen, as we have mentioned previously.
 
-While it is considerably difficult to accomplish such a feat, which involves bypassing the protection mechanisms of the game, this vulnerability is enough to defeat the purpose of the runes to some extent.
+While it is considerably difficult to accomplish such a feat, which involves bypassing the protection mechanisms of the game, this vulnerability is enough to defeat the purpose of the runes to a significant extent.
 
-One way to solve this issue is to move both generation and validation processes to the server. By doing so, the server would forward the image of the generated CAPTCHA through the network, while the client would be responsible for sending back the user input. Thereby, the only possible way to bypass this mechanism would be through image analysis. Although it was reasonably simple to perform image analysis with the current rune system, it is not nearly as trivial with other alternatives like the ones we will discuss next.
+One way to solve this issue is to move both generation and validation processes to the server. The game server would send the generated image to the client and validate the response of the client. The client, on the other hand, would simply display the received image and forward the user's input. By doing so, the only possible way to bypass this mechanism would be through image processing. Although it was reasonably simple to circumvent the current rune system through image processing, it is not nearly as trivial with other CAPTCHAs.
 
 #### Alternative systems
-Although the changes above could improve the overall quality of the rune system, they alone are not capable of solving its main vulnerability. For this reason, the following alternatives were proposed based on the resources readily available within the game and the capabilities of modern image classifiers.
+While the changes above could improve the overall quality of the rune system, they alone are not capable of solving its main vulnerabilities. For this reason, the following alternatives were proposed based on the resources readily available within the game and the capabilities of modern image classifiers.
 
 #### Finding image matches
 ![Finding image matches](./docs/find_matches.png)
@@ -521,10 +523,12 @@ In this system, the user is asked to find all the monsters, NPCs, or characters 
 Both systems have their advantages and disadvantages compared to the current one. Let's examine them more closely.
 
 #### Advantages
-MapleStory promptly features **thousands** of different sprites, which may be rotated, scaled, flipped, and put in an obfuscated background, resulting in **hundreds of thousands** of different combinations. Thus, when coupled with [better robustness improvements](#better-robustness), the proposed systems could force botting software to be extremely inaccurate, expensive, and possibly impractical. Besides, the first system has an extra advantage since attackers would also have to find out all of the labels that may be specified by the rune system, increasing the cost of developing an automated tool even more.
+MapleStory promptly features thousands of different sprites, which may be rotated, scaled, flipped, and put in an obfuscated background, resulting in **hundreds of thousands** of different combinations. Thus, when coupled with [better robustness improvements](#better-robustness), the proposed systems could force botting software to be extremely expensive, inaccurate, and possibly impractical.
+
+Besides, the first system has an extra advantage since attackers would also have to find out all of the labels that may be specified by the rune system, increasing the cost of developing an automated tool even more.
 
 #### Disadvantages
-The proposed systems, especially the first one, are more expensive to implement. Also, the proposed systems are not as universal and easy to solve as the current one, which only requires the user to identify the direction of four arrows. Fortunately, this can be mitigated by employing [dynamic difficulty](#dynamic-difficulty).
+Although they may provide benefits, the proposed systems do not come without caveats. Both mechanisms are *considerably more expensive* to implement, especially the first one. Also, they are *not as universal* as the current runes, which only require the user to identify arrow directions. Despite this, it is possible to mitigate the latter issue by employing dynamic difficulty.
 
 ---
 
