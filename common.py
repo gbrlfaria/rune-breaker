@@ -1,7 +1,6 @@
 import os
 import re
 
-# Configuration
 
 # Classification
 INPUT_SHAPE = (60, 60, 1)
@@ -20,9 +19,8 @@ SCREENSHOTS_DIR = DATA_DIR + "screenshots/"
 
 MODEL_DIR = "./model/"
 
+
 # Functions
-
-
 def get_files(directory):
     result = []
 
