@@ -479,16 +479,16 @@ With a moderate amount of work, we created a model capable of solving runes up t
 ### Conclusion
 First of all, we proved that current artificial intelligence technology can easily bypass the employed visual obfuscation, reaching human-level performance. We also know that these obfuscation methods bring significant usability drawbacks since there have been multiple complaints from the player base, including colorblind people.
 
-Moreover, while the current system forced us to develop a new model from scratch, one would expect it to be more elaborate and expensive. Also, even if a perfect model existed, bot developers would still have to create an algorithm or a hack to move the character to the rune. This is not only a whole different problem but possibly a more difficult one. This makes us wonder whether the part of the rune system update that introduced the visual obfuscation had a significant impact on the botting ecosystem.
+Moreover, while the current system forced us to develop a new model from scratch, one would expect it to be more elaborate and expensive. Also, even if a perfect model existed, bot developers would still have to create an algorithm or a hack to control the character and move it to the rune. This is not only a whole different problem but possibly a more difficult one, which already provides a notable level of protection. This makes us wonder whether the part of the rune system update that introduced the visual obfuscation had a significant impact on the botting ecosystem.
 
 Additionally, "commercial-level" botting tools have been immune to visual tricks since runes first appeared. As we will see, they do not need to process any image. 
 
 Therefore, we are left with two issues. First, the current rune system hurts user interaction without providing meaningful security benefits. Second, it is somewhat ineffective toward some of the botting software available out there.
 
 ### How to improve it?
-The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only. Regarding the model developed in this project, a quick patch to make it stop working is to use multiple shapes instead of surrounding circles only. Unfortunately, it would still be feasible to update the project and make it work again.
+The solution to the first problem is straightforward: reduce or remove the semi-transparency effects and use colorblind-friendly colors only.
 
-The second issue, on the other hand, is trickier. Recent advancements in AI technology have been closing the gap between humans and machines. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. **The best alternative seems to be to move away from this type of CAPTCHA**.
+The second issue, on the other hand, is trickier. First, there is software capable of bypassing the anti-botting system internally. Second, recent advancements in AI technology have been closing the gap between humans and machines. Even though it is simple to patch the game visuals and prevent this project from functioning, it is just as easy to make it work again. It is no coincidence that traditional CAPTCHAs have disappeared from the web in the last years. **The best alternative seems to be to move away from this type of CAPTCHA**.
 
 Despite that, there are still some opportunities that can be explored within this type of anti-botting system. Let's see some of them.
 
