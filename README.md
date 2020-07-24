@@ -72,7 +72,11 @@ Considering the purposes of this project, only the model pipeline will be discus
 Each step of this pipeline will be thoroughly explained in the sections below. Also, the experimental results obtained during the development of this project will be presented.
 
 ### Labeling
-First, we should collect game screenshots and label them according to the direction and shape of the arrows. To make this process easier, the [`label.py`](./preprocessing/label.py) script was created. The next figure shows the application screen.
+First, we should collect game screenshots and label them according to the direction and shape of the arrows. To make this process easier, the [`label.py`](./preprocessing/label.py) script was created. The next figure shows the application screen when running the command below.
+
+```
+$ python preprocessing/label.py
+```
 
 ![Labeling application screen](./docs/labeler.png)
 
@@ -84,7 +88,7 @@ There are five different types of arrows, which can be arranged within three gro
 
 This distinction is made to avoid problems related to data imbalance. This topic will be better explained later on in the [dataset](#dataset) section.
 
-After a screenshot is labeled, the application moves it to another folder. Finally, the file is renamed with a name that contains its labels and a unique id (e.g. `wide_rdlu_123.png`, where each letter in `rdlu` represents a direction).
+After a screenshot is labeled, the application moves it to the `./data/labeled/` folder. Finally, the file is renamed with a name that contains its labels and a unique id (e.g. `wide_rdlu_123.png`, where each letter in `rdlu` represents a direction).
 
 > Note: instead of manually collecting and labeling game screenshots, it is also possible to automatically generate artificial samples by directly using the game assets.
 
@@ -225,9 +229,13 @@ But, as mentioned earlier, we can augment the output by rotating and flipping th
 #### Application interface
 Before discussing the experimental results, let's talk about the preprocessing application interface. When the user runs the script, it displays the following window for each screenshot in the `./data/labeled/` folder.
 
+```
+$ python preprocessing/preprocess.py
+```
+
 ![Preprocess script window](./docs/preprocessor_window.png)
 
-For each one of them, the user is given the option to either process or skip the screenshot. If the user chooses to process it, the script produces output samples and places them inside the `./data/samples` folder.
+For each one of them, the user is given the option to either process or skip the screenshot. If the user chooses to process it, the script produces output samples and places them inside the `./data/samples/` folder.
 
 The user should skip a screenshot when it is impossible to determine the direction of an arrow. In other words, the screenshot should be skipped when the arrow is completely corrupted, or when the algorithm misses its location. See a couple of examples.
 
@@ -250,7 +258,7 @@ Approved 798 out of 800 images (99%).
 In other words, the preprocessing stage had an accuracy of 99.75%. Plus, there are now 25,536 arrow samples that we can use to create the dataset that will be used by the classification model. Great!
 
 ### Dataset
-In this step of the pipeline, the objective is to divide the generated samples into training, validation, and testing sets. The produced dataset will then be used to train the arrow classification model. Note that the quality of the dataset has a direct impact on the performance of the model. Thus, it is essential to perform this step correctly.
+In this step of the pipeline, the objective is to split the generated samples into training, validation, and testing sets. Each set has its own folder inside the `./data/` directory. The produced dataset will then be used to train the arrow classification model. Note that the quality of the dataset has a direct impact on the performance of the model. Thus, it is essential to perform this step correctly.
 
 Let's start by defining and understanding the purpose of each set.
 
@@ -269,7 +277,7 @@ The [`make_dataset.py`](./operations/make_dataset.py) script is responsible for 
 
 > Note: to avoid data leakage, the script also ensures that each sample and its flipped counterpart are always in the same set.
 
-Running the script with the settings below produces the following results.
+Running the script with the ratio set to `0.9` produces the following results.
 
 ```
 $ python operations/make_dataset.py -r 0.9
@@ -277,9 +285,9 @@ $ python operations/make_dataset.py -r 0.9
 **Training set**
 |            | Down | Left | Right |   Up | Total |
 |------------|-----:|-----:|------:|-----:|------:|
-| **Round** | 1684 | 1684 | 1684  | 1684 | 6736  |
+| **Round**  | 1684 | 1684 | 1684  | 1684 | 6736  |
 | **Wide**   | 1684 | 1684 | 1684  | 1684 | 6736  |
-| **Narrow**   | 1684 | 1684 | 1684  | 1684 | 6736  |
+| **Narrow** | 1684 | 1684 | 1684  | 1684 | 6736  |
 | **Total**  | 5052 | 5052 | 5052  | 5052 | 20208 |
 
 **Validation set**
@@ -368,7 +376,7 @@ aug = ImageDataGenerator(width_shift_range=0.125, height_shift_range=0.125, zoom
 ### Training the model
 With that set, we can fit the model to the data with the [`train.py`](./model/train.py) script. Based on a few input parameters, the script creates the neural network, performs data augmentation, fits the model to the data, and saves the trained model to a file. Moreover, to improve the performance of the training process, the program applies mini-batch gradient descent and early stopping.
 
-Running the following command, we obtain the results below.
+Let's train a model named `binarized_model128.h5` with the batch size set to `128`.
 ```
 $ python model/train.py -m binarized_model128.h5 -b 128
 
@@ -413,7 +421,7 @@ Now that our model has been trained and validated, it is time to evaluate its pe
 > Note: you can access the complete results [here](./results).
 
 ### Performance
-To calculate the performance of the model, we can run the [`classify.py`](./model/classify.py) script with the following parameters.
+To calculate the performance of the model on the testing set, we can run the [`classify.py`](./model/classify.py) script with the following parameters.
 ```
 $ python model/classify.py -m binarized_model128.h5 -d testing
 ```
