@@ -25,6 +25,8 @@ APPROVE_KEY = 32 # space
 
 
 def main(inspection, mode, automatic):
+    common.create_directories()
+
     print("     SPACE = approve")
     print("OTHER KEYS = skip")
     print("         Q = quit\n")

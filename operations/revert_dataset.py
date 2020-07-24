@@ -7,6 +7,8 @@ import common
 
 
 def main():
+    common.create_directories()
+
     print("Reverting images from the training directory...")
     revert_files(common.TRAINING_DIR)
 

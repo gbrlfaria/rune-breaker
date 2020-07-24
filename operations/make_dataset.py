@@ -17,8 +17,13 @@ VALIDATION_SET_RATIO = 0.5
 
 
 def main(training_set_ratio):
-    arrows = pd.DataFrame(np.zeros((3, 4), dtype=np.int32), index=('round', 'wide', 'narrow'),
-                          columns=('down', 'left', 'right', 'up'))
+    common.create_directories()
+
+    arrows = pd.DataFrame(
+        np.zeros((3, 4), dtype=np.int32),
+        index=('round', 'wide', 'narrow'),
+        columns=('down', 'left', 'right', 'up')
+    )
 
     images = [(p, f) for p, f in common.get_files(common.SAMPLES_DIR) if f[-5] != 'F']
 
@@ -35,37 +40,30 @@ def main(training_set_ratio):
         for t, _ in arrows.iterrows():
             print("\nProcessing {} arrows...".format(t))
 
-            for d in arrows:
-                candidates = [(p, f) for p, f in images if common.arrow_labels(f) == (d, t)]
+            for direction in arrows:
+                candidates = [(p, f) for p, f in images if common.arrow_labels(f) == (direction, t)]
 
-                print("{}: {}".format(d, len(candidates)))
+                print("{}: {}".format(direction, len(candidates)))
 
                 training = random.sample(candidates, num_samples)
                 for path, filename in training:
-                    dst_dir = common.TRAINING_DIR + d + "/"
-                    if not os.path.exists(dst_dir):
-                        os.makedirs(dst_dir)
-
+                    dst_dir = common.TRAINING_DIR + direction + '/'
                     os.rename(path, dst_dir + filename)
                     os.rename(flipped(path), dst_dir + flipped(filename))
 
                 candidates = [c for c in candidates if c not in training]
 
-                validation = random.sample(candidates, int(len(candidates) * VALIDATION_SET_RATIO))
+                validation = random.sample(
+                    candidates, int(len(candidates) * VALIDATION_SET_RATIO)
+                )
                 for path, filename in validation:
-                    dst_dir = common.VALIDATION_DIR + d + "/"
-                    if not os.path.exists(dst_dir):
-                        os.makedirs(dst_dir)
-                        
+                    dst_dir = common.VALIDATION_DIR + direction + '/'                        
                     os.rename(path, dst_dir + filename)
                     os.rename(flipped(path), dst_dir + flipped(filename))
 
                 testing = [c for c in candidates if c not in validation]
                 for path, filename in testing:
-                    dst_dir = common.TESTING_DIR + d + "/"
-                    if not os.path.exists(dst_dir):
-                        os.makedirs(dst_dir)
-                        
+                    dst_dir = common.TESTING_DIR + direction + '/'                        
                     os.rename(path, dst_dir + filename)
                     os.rename(flipped(path), dst_dir + flipped(filename))
 
@@ -90,12 +88,15 @@ def show_summary():
 
 
 def get_summary_matrix(directory):
-    matrix = pd.DataFrame(np.zeros((4, 5), dtype=np.int32), index=(
-        'round', 'wide', 'narrow', 'total'), columns=('down', 'left', 'right', 'up', 'total'))
+    matrix = pd.DataFrame(
+        np.zeros((4, 5), dtype=np.int32),
+        index=('round', 'wide', 'narrow', 'total'),
+        columns=('down', 'left', 'right', 'up', 'total')
+    )
 
     images = common.get_files(directory)
 
-    for path, filename in images:
+    for _, filename in images:
         arrow_direction, arrow_type = common.arrow_labels(filename)
 
         matrix[arrow_direction][arrow_type] += 1

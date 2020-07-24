@@ -19,6 +19,8 @@ type_dictionary = {'1': 'round', '2': 'wide', '3': 'narrow'}
 
 
 def main():
+    common.create_directories()
+
     print("         Q = ignore image")
     print("         1 = label as round")
     print("         2 = label as wide")

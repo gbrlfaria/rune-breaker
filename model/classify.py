@@ -16,6 +16,8 @@ import common
 
 
 def main(src_subdir, verbose, model_name):
+    common.create_directories()
+
     src_dir = common.DATA_DIR + src_subdir + "/"
     
     model = tensorflow.keras.models.load_model(common.MODEL_DIR + model_name)

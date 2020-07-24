@@ -27,6 +27,8 @@ IMAGE_SHAPE = (common.INPUT_SHAPE[0], common.INPUT_SHAPE[1])
 
 
 def main(batch_size, model_name):
+    common.create_directories()
+
     show_settings(batch_size)
 
     model = make_model()
